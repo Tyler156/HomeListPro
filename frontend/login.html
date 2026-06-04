@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · HomeList Pro</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>HomeList Pro</h1>
+    <p class="subtitle">Sign in to start photographing listings.</p>
+
+    <form id="auth-form" autocomplete="on">
+      <label for="email">Email</label>
+      <input id="email" type="email" required autocomplete="email" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required minlength="6" autocomplete="current-password" />
+
+      <div class="button-row">
+        <button id="signin-btn" type="submit">Sign in</button>
+        <button id="signup-btn" type="button" class="secondary">Create account</button>
+      </div>
+    </form>
+
+    <div id="message" class="message"></div>
+  </div>
+
+  <script type="module">
+    import { signIn, signUp, redirectIfAuthed } from "./js/auth.js";
+
+    redirectIfAuthed();
+
+    const form = document.getElementById("auth-form");
+    const signinBtn = document.getElementById("signin-btn");
+    const signupBtn = document.getElementById("signup-btn");
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const messageEl = document.getElementById("message");
+
+    function showError(err) {
+      messageEl.className = "message error";
+      messageEl.textContent = `${err.code || "error"}: ${err.message}`;
+    }
+
+    function clearMessage() {
+      messageEl.className = "message";
+      messageEl.textContent = "";
+    }
+
+    function setBusy(busy) {
+      signinBtn.disabled = busy;
+      signupBtn.disabled = busy;
+    }
+
+    async function handle(action) {
+      clearMessage();
+      if (!emailEl.value || !passwordEl.value) return;
+      setBusy(true);
+      try {
+        await action(emailEl.value, passwordEl.value);
+        window.location.replace("dashboard.html");
+      } catch (err) {
+        showError(err);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      handle(signIn);
+    });
+
+    signupBtn.addEventListener("click", () => handle(signUp));
+  </script>
+</body>
+</html>

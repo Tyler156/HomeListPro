@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard · HomeList Pro</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="card dashboard">
+    <h1>HomeList Pro</h1>
+    <p class="subtitle">You're signed in. Listings and photo capture are coming next.</p>
+
+    <div class="user-info">
+      Signed in as <strong id="user-email">…</strong>
+    </div>
+
+    <div class="button-row">
+      <button id="fetch-btn" type="button">Fetch profile from backend</button>
+      <button id="signout-btn" type="button" class="secondary">Sign out</button>
+    </div>
+
+    <div id="message" class="message"></div>
+    <pre id="response" hidden></pre>
+  </div>
+
+  <script type="module">
+    import { auth } from "./js/firebase-config.js";
+    import { requireAuth, signOutUser } from "./js/auth.js";
+    import { callApi } from "./js/api.js";
+
+    requireAuth().then((user) => {
+      document.getElementById("user-email").textContent = user.email;
+    });
+
+    const fetchBtn = document.getElementById("fetch-btn");
+    const signoutBtn = document.getElementById("signout-btn");
+    const messageEl = document.getElementById("message");
+    const responseEl = document.getElementById("response");
+
+    function showError(text) {
+      messageEl.className = "message error";
+      messageEl.textContent = text;
+    }
+
+    function clearMessage() {
+      messageEl.className = "message";
+      messageEl.textContent = "";
+    }
+
+    fetchBtn.addEventListener("click", async () => {
+      clearMessage();
+      responseEl.hidden = true;
+      try {
+        const data = await callApi("/api/me");
+        responseEl.textContent = JSON.stringify(data, null, 2);
+        responseEl.hidden = false;
+      } catch (err) {
+        showError(`Backend call failed: ${err.message}`);
+      }
+    });
+
+    signoutBtn.addEventListener("click", async () => {
+      await signOutUser();
+      window.location.replace("login.html");
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Firebase secrets — NEVER commit
+backend/serviceAccountKey.json
+*.serviceAccountKey.json
+
+# Env files
+.env
+.env.local
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Node (in case we add tooling later)
+node_modules/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
