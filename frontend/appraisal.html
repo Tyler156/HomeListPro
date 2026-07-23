@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Appraisal · HomeList Pro</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="appraisal-page">
+  <div class="appraisal-container">
+    <header class="appraisal-header">
+      <button id="back-btn" class="back-btn">← Appraisals</button>
+    </header>
+
+    <div class="appraisal-main">
+      <section class="appraisal-info">
+        <div class="property-title">
+          <h1 id="property-name">...</h1>
+          <span id="status-badge" class="status-badge">In progress</span>
+        </div>
+
+        <div class="property-meta">
+          <div class="meta-item">
+            <span class="icon">📍</span>
+            <span id="property-location">...</span>
+          </div>
+          <div class="meta-item">
+            <span class="icon">👤</span>
+            <span id="property-owner">...</span>
+          </div>
+          <div class="meta-item">
+            <span id="bedrooms-count">3</span> bd
+          </div>
+          <div class="meta-item">
+            <span id="bathrooms-count">2</span> ba
+          </div>
+        </div>
+
+        <div class="appraisal-stats">
+          <div class="stat">
+            <strong id="issues-count">0</strong>
+            <span>Issues</span>
+          </div>
+          <div class="stat">
+            <strong id="rooms-count">0</strong>
+            <span>Rooms</span>
+          </div>
+          <div class="stat">
+            <strong id="trades-count">0</strong>
+            <span>Trades</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="appraisal-content">
+        <div class="content-header">
+          <h2>Captured issues</h2>
+          <button id="capture-issue-btn" class="btn-capture">
+            📷 Capture issue
+          </button>
+        </div>
+
+        <div id="issues-container" class="issues-container">
+          <div class="empty-issues">
+            <div class="empty-icon">📷</div>
+            <h3>No issues captured yet</h3>
+            <p>Walk the property and snap the things that need fixing.</p>
+            <button id="capture-first-issue-btn" class="btn-capture-primary">
+              📷 Capture first issue
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="appraisal-footer">
+        <button id="preview-report-btn" class="btn-secondary">
+          📄 Preview report
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth } from "./js/auth.js";
+
+    // Get appraisal ID from URL
+    const params = new URLSearchParams(window.location.search);
+    const appraisalId = parseInt(params.get("id"));
+
+    if (isNaN(appraisalId)) {
+      window.location.href = "dashboard.html";
+    }
+
+    let appraisal = null;
+
+    // Load appraisal data
+    function loadAppraisal() {
+      const properties = JSON.parse(localStorage.getItem("properties")) || [];
+      appraisal = properties[appraisalId];
+
+      if (!appraisal) {
+        window.location.href = "dashboard.html";
+        return;
+      }
+
+      // Populate property info
+      document.getElementById("property-name").textContent = appraisal.address;
+      document.getElementById("property-location").textContent = appraisal.location;
+      document.getElementById("property-owner").textContent = `Owner: ${appraisal.owner}`;
+      document.getElementById("bedrooms-count").textContent = appraisal.bedrooms;
+      document.getElementById("bathrooms-count").textContent = appraisal.bathrooms;
+      document.getElementById("issues-count").textContent = appraisal.issues?.length || 0;
+
+      // Set status badge
+      const statusBadge = document.getElementById("status-badge");
+      statusBadge.textContent =
+        appraisal.status === "draft"
+          ? "Draft"
+          : appraisal.status === "sent"
+            ? "Report sent"
+            : "In progress";
+      statusBadge.className = `status-badge ${appraisal.status === "draft" ? "draft" : appraisal.status === "sent" ? "sent" : ""}`;
+
+      // Populate issues
+      const issuesContainer = document.getElementById("issues-container");
+      const issues = appraisal.issues || [];
+
+      if (issues.length === 0) {
+        issuesContainer.innerHTML = `
+          <div class="empty-issues">
+            <div class="empty-icon">📷</div>
+            <h3>No issues captured yet</h3>
+            <p>Walk the property and snap the things that need fixing.</p>
+            <button id="capture-first-issue-btn" class="btn-capture-primary">
+              📷 Capture first issue
+            </button>
+          </div>
+        `;
+        document
+          .getElementById("capture-first-issue-btn")
+          .addEventListener("click", captureIssue);
+      } else {
+        issuesContainer.innerHTML = issues
+          .map(
+            (issue, index) => `
+          <div class="issue-card">
+            <div class="issue-number">${index + 1}</div>
+            <div class="issue-content">
+              <h3>${issue.title}</h3>
+              <p>${issue.description}</p>
+              <div class="issue-meta">
+                <span class="trade-tag">${issue.trade}</span>
+                <span class="date">${new Date(issue.date).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      }
+    }
+
+    // Capture issue
+    function captureIssue() {
+      const title = prompt("Issue title:");
+      if (!title) return;
+
+      const description = prompt("Issue description:");
+      if (!description) return;
+
+      const trade = prompt("Trade type (e.g., Plumber, Electrician):");
+      if (!trade) return;
+
+      const properties = JSON.parse(localStorage.getItem("properties")) || [];
+      if (!properties[appraisalId].issues) {
+        properties[appraisalId].issues = [];
+      }
+
+      properties[appraisalId].issues.push({
+        title,
+        description,
+        trade,
+        date: new Date().toISOString(),
+      });
+
+      localStorage.setItem("properties", JSON.stringify(properties));
+      loadAppraisal();
+    }
+
+    // Back button
+    document.getElementById("back-btn").addEventListener("click", () => {
+      window.location.href = "dashboard.html";
+    });
+
+    // Capture issue buttons
+    document.getElementById("capture-issue-btn").addEventListener("click", captureIssue);
+
+    // Preview report button
+    document.getElementById("preview-report-btn").addEventListener("click", () => {
+      alert("Report generation coming soon!");
+    });
+
+    // Initialize
+    requireAuth().then(() => {
+      loadAppraisal();
+    });
+  </script>
+</body>
+</html>

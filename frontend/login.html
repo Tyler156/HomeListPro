@@ -6,54 +6,65 @@
   <title>Sign in · HomeList Pro</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body>
+<body class="auth-page">
   <div class="card">
+    <!-- The top part of the card -->
+    <div class="brand-badge" aria-hidden="true">H</div>
     <h1>HomeList Pro</h1>
-    <p class="subtitle">Sign in to start photographing listings.</p>
+    <p class="subtitle">Sign in to continue managing your listings.</p>
 
+    <!-- The login form -->
     <form id="auth-form" autocomplete="on">
+      <!-- Email box -->
       <label for="email">Email</label>
-      <input id="email" type="email" required autocomplete="email" />
+      <input id="email" type="email" required autocomplete="email" placeholder="you@example.com" />
 
+      <!-- Password box -->
       <label for="password">Password</label>
-      <input id="password" type="password" required minlength="6" autocomplete="current-password" />
+      <input id="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Enter your password" />
 
-      <div class="button-row">
+      <!-- Main button -->
+      <div class="button-stack">
         <button id="signin-btn" type="submit">Sign in</button>
-        <button id="signup-btn" type="button" class="secondary">Create account</button>
       </div>
     </form>
 
+    <p class="help-text">Use your HomeList Pro account to keep going.</p>
+    <p class="bottom-note">New here? <a href="signup.html" class="bottom-link">Make an account</a></p>
     <div id="message" class="message"></div>
   </div>
 
   <script type="module">
-    import { signIn, signUp, redirectIfAuthed } from "./js/auth.js";
+    import { signIn, redirectIfAuthed } from "./js/auth.js";
 
+    // Check if the user is already signed in.
     redirectIfAuthed();
 
+    // Get the form parts.
     const form = document.getElementById("auth-form");
     const signinBtn = document.getElementById("signin-btn");
-    const signupBtn = document.getElementById("signup-btn");
     const emailEl = document.getElementById("email");
     const passwordEl = document.getElementById("password");
     const messageEl = document.getElementById("message");
 
+    // Show an error if the sign in fails.
     function showError(err) {
       messageEl.className = "message error";
       messageEl.textContent = `${err.code || "error"}: ${err.message}`;
     }
 
+    // Clear the old message.
     function clearMessage() {
       messageEl.className = "message";
       messageEl.textContent = "";
     }
 
+    // Stop the buttons while work is going.
     function setBusy(busy) {
       signinBtn.disabled = busy;
-      signupBtn.disabled = busy;
     }
 
+    // Run the sign in or sign up action.
     async function handle(action) {
       clearMessage();
       if (!emailEl.value || !passwordEl.value) return;
@@ -68,12 +79,11 @@
       }
     }
 
+    // Sign in when the form is sent.
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       handle(signIn);
     });
-
-    signupBtn.addEventListener("click", () => handle(signUp));
   </script>
 </body>
 </html>

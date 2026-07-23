@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create account · HomeList Pro</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="auth-page">
+  <div class="card">
+    <div class="brand-badge" aria-hidden="true">H</div>
+    <h1>HomeList Pro</h1>
+    <p class="subtitle">Create your account to start managing listings.</p>
+
+    <form id="auth-form" autocomplete="on">
+      <label for="full-name">Full name</label>
+      <input id="full-name" type="text" required autocomplete="name" placeholder="Jane Doe" />
+
+      <label for="email">Email</label>
+      <input id="email" type="email" required autocomplete="email" placeholder="you@example.com" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required minlength="6" autocomplete="new-password" placeholder="Choose a password" />
+
+      <label for="confirm-password">Confirm password</label>
+      <input id="confirm-password" type="password" required minlength="6" autocomplete="new-password" placeholder="Re-enter your password" />
+
+      <div class="button-stack">
+        <button id="signup-btn" type="submit">Create account</button>
+      </div>
+    </form>
+
+    <p class="help-text">Your account will be ready instantly.</p>
+    <p class="bottom-note">Already have an account? <a href="login.html" class="bottom-link">Sign in</a></p>
+    <div id="message" class="message"></div>
+  </div>
+
+  <script type="module">
+    import { signUp, redirectIfAuthed } from "./js/auth.js";
+
+    redirectIfAuthed();
+
+    const form = document.getElementById("auth-form");
+    const signupBtn = document.getElementById("signup-btn");
+    const fullNameEl = document.getElementById("full-name");
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const confirmPasswordEl = document.getElementById("confirm-password");
+    const messageEl = document.getElementById("message");
+
+    function showError(err) {
+      messageEl.className = "message error";
+      messageEl.textContent = `${err.code || "error"}: ${err.message}`;
+    }
+
+    function clearMessage() {
+      messageEl.className = "message";
+      messageEl.textContent = "";
+    }
+
+    function setBusy(busy) {
+      signupBtn.disabled = busy;
+    }
+
+    async function handleSubmit() {
+      clearMessage();
+      const fullName = fullNameEl.value.trim();
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+      const confirmPassword = confirmPasswordEl.value;
+
+      if (!fullName || !email || !password || !confirmPassword) return;
+
+      if (password !== confirmPassword) {
+        messageEl.className = "message error";
+        messageEl.textContent = "Passwords do not match.";
+        return;
+      }
+
+      setBusy(true);
+      try {
+        await signUp(email, password, fullName);
+        window.location.replace("dashboard.html");
+      } catch (err) {
+        showError(err);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      handleSubmit();
+    });
+  </script>
+</body>
+</html>
