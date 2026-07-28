@@ -8,8 +8,12 @@
 </head>
 <body class="appraisal-page">
   <div class="appraisal-container">
-    <header class="appraisal-header">
+    <header class="appraisal-header report-header">
       <button id="back-btn" class="back-btn">← Appraisals</button>
+      <div class="detail-actions">
+        <button id="delete-appraisal-btn" class="btn-delete">Delete appraisal</button>
+        <button id="preview-report-btn" class="btn-secondary">Preview report</button>
+      </div>
     </header>
 
     <div class="appraisal-main">
@@ -29,10 +33,10 @@
             <span id="property-owner">...</span>
           </div>
           <div class="meta-item">
-            <span id="bedrooms-count">3</span> bd
+            <span id="bedrooms-count">3</span> Beds
           </div>
           <div class="meta-item">
-            <span id="bathrooms-count">2</span> ba
+            <span id="bathrooms-count">2</span> Bathrooms
           </div>
         </div>
 
@@ -55,155 +59,583 @@
       <section class="appraisal-content">
         <div class="content-header">
           <h2>Captured issues</h2>
-          <button id="capture-issue-btn" class="btn-capture">
-            📷 Capture issue
-          </button>
+          <button id="captureBtn" class="btn-capture">📷 Select room & capture</button>
         </div>
 
-        <div id="issues-container" class="issues-container">
-          <div class="empty-issues">
-            <div class="empty-icon">📷</div>
-            <h3>No issues captured yet</h3>
-            <p>Walk the property and snap the things that need fixing.</p>
-            <button id="capture-first-issue-btn" class="btn-capture-primary">
-              📷 Capture first issue
-            </button>
+        <div id="issues-container" class="issues-container"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="roomModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content report-preview-content room-modal-content">
+      <div class="modal-header">
+        <h2>Select room</h2>
+        <button id="closeRoomModal" type="button" class="modal-close">✕</button>
+      </div>
+      <p class="modal-subtitle">Choose the room before taking a photo. Every issue needs a room assigned.</p>
+      <div class="room-grid" id="roomGrid"></div>
+    </div>
+  </div>
+
+  <div id="captureModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content report-preview-content capture-modal-content">
+      <div class="modal-header">
+        <h2 id="captureModalTitle">Capture issue</h2>
+        <button id="closeCaptureModal" type="button" class="modal-close">✕</button>
+      </div>
+      <div class="capture-panel">
+        <div class="camera-stage">
+          <video id="video" autoplay playsinline></video>
+          <canvas id="canvas" style="display:none"></canvas>
+          <img id="photoPreview" alt="Photo preview" class="photo-preview" style="display:none" />
+        </div>
+
+        <div class="camera-controls">
+          <button id="takePhotoBtn" class="btn-primary-large">Take photo</button>
+          <button id="retakePhotoBtn" class="btn-secondary" type="button" style="display:none">Retake</button>
+        </div>
+
+        <div id="captureInstructions" class="capture-instructions">
+          <p>Select the room and take a photo of the issue. After capture, add a problem description and notes.</p>
+        </div>
+
+        <div id="captureDetails" class="capture-details" style="display:none">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Room</label>
+              <div id="captureRoomLabel" class="room-label">Kitchen</div>
+            </div>
+            <div class="form-group">
+              <label for="captureSeverity">Severity</label>
+              <select id="captureSeverity" class="select-input">
+                <option>Low</option>
+                <option selected>Medium</option>
+                <option>High</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="captureIssueTitle">Issue title</label>
+            <input id="captureIssueTitle" type="text" class="text-input" placeholder="E.g. Damaged cupboard hinge" />
+          </div>
+
+          <div class="form-group">
+            <label for="captureDescription">Problem details</label>
+            <textarea id="captureDescription" rows="3" class="textarea-input" placeholder="Describe the issue"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="captureNotes">Notes</label>
+            <textarea id="captureNotes" rows="2" class="textarea-input" placeholder="Additional notes"></textarea>
+          </div>
+
+          <div class="suggestion-panel">
+            <p class="suggestion-title">Quick suggestions</p>
+            <div id="suggestionList" class="suggestion-list"></div>
+          </div>
+
+          <div class="capture-actions-inline">
+            <button id="saveIssueBtn" class="btn-primary-large">Save issue</button>
+            <button id="cancelCaptureBtn" class="btn-secondary" type="button">Cancel</button>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
 
-      <footer class="appraisal-footer">
-        <button id="preview-report-btn" class="btn-secondary">
-          📄 Preview report
-        </button>
-      </footer>
+  <div id="editIssueModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content report-preview-content capture-modal-content">
+      <div class="modal-header">
+        <h2>Edit issue</h2>
+        <button id="closeEditModal" type="button" class="modal-close">✕</button>
+      </div>
+      <div class="capture-details">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editRoom">Room</label>
+            <select id="editRoom" class="select-input"></select>
+          </div>
+          <div class="form-group">
+            <label for="editSeverity">Severity</label>
+            <select id="editSeverity" class="select-input">
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="editTitle">Issue title</label>
+          <input id="editTitle" type="text" class="text-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="editDescription">Problem details</label>
+          <textarea id="editDescription" rows="3" class="textarea-input"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="editNotes">Notes</label>
+          <textarea id="editNotes" rows="2" class="textarea-input"></textarea>
+        </div>
+
+        <div class="capture-actions-inline">
+          <button id="saveEditBtn" class="btn-primary-large">Save changes</button>
+          <button id="replacePhotoBtn" class="btn-secondary" type="button">Replace photo</button>
+          <button id="deleteIssueBtn" class="btn-secondary" type="button">Delete issue</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <script type="module">
     import { requireAuth } from "./js/auth.js";
+    import { openCamera, closeCamera } from "./js/camera.js";
 
-    // Get appraisal ID from URL
     const params = new URLSearchParams(window.location.search);
-    const appraisalId = parseInt(params.get("id"));
+    const appraisalId = parseInt(params.get("id"), 10);
+    const ROOMS = [
+      "Kitchen",
+      "Bathroom",
+      "Living Room",
+      "Bedroom 1",
+      "Bedroom 2",
+      "Garage",
+      "Exterior",
+      "Other",
+    ];
 
-    if (isNaN(appraisalId)) {
+    const PROBLEM_LIBRARY = {
+      Kitchen: ["Damaged cupboard", "Broken drawer", "Cracked bench", "Leaking tap"],
+      Bathroom: ["Mould", "Broken tiles", "Water damage", "Blocked drain"],
+      "Living Room": ["Sun-faded carpet", "Loose skirting", "Cracked window", "Damaged paint"],
+      "Bedroom 1": ["Wardrobe door issue", "Loose light fitting", "Uneven flooring", "Window seal damage"],
+      "Bedroom 2": ["Wardrobe door issue", "Loose light fitting", "Uneven flooring", "Window seal damage"],
+      Garage: ["Door track issue", "Lighting fault", "Floor staining", "Storage damage"],
+      Exterior: ["Broken gutter", "Damaged cladding", "Overgrown garden", "Peeling paint"],
+      Other: ["General wear", "Poor finish", "Minor damage", "Loose fittings"],
+    };
+
+    const captureBtn = document.getElementById("captureBtn");
+    const previewReportBtn = document.getElementById("preview-report-btn");
+    const backBtn = document.getElementById("back-btn");
+    const deleteAppraisalBtn = document.getElementById("delete-appraisal-btn");
+    const issuesContainer = document.getElementById("issues-container");
+    const roomModal = document.getElementById("roomModal");
+    const captureModal = document.getElementById("captureModal");
+    const editIssueModal = document.getElementById("editIssueModal");
+    const roomGrid = document.getElementById("roomGrid");
+    const closeRoomModal = document.getElementById("closeRoomModal");
+    const closeCaptureModal = document.getElementById("closeCaptureModal");
+    const closeEditModal = document.getElementById("closeEditModal");
+    const captureRoomLabel = document.getElementById("captureRoomLabel");
+    const captureIssueTitle = document.getElementById("captureIssueTitle");
+    const captureDescription = document.getElementById("captureDescription");
+    const captureNotes = document.getElementById("captureNotes");
+    const captureSeverity = document.getElementById("captureSeverity");
+    const saveIssueBtn = document.getElementById("saveIssueBtn");
+    const cancelCaptureBtn = document.getElementById("cancelCaptureBtn");
+    const takePhotoBtn = document.getElementById("takePhotoBtn");
+    const retakePhotoBtn = document.getElementById("retakePhotoBtn");
+    const captureDetails = document.getElementById("captureDetails");
+    const photoPreview = document.getElementById("photoPreview");
+    const suggestionList = document.getElementById("suggestionList");
+    const captureModalTitle = document.getElementById("captureModalTitle");
+    const editRoom = document.getElementById("editRoom");
+    const editSeverity = document.getElementById("editSeverity");
+    const editTitle = document.getElementById("editTitle");
+    const editDescription = document.getElementById("editDescription");
+    const editNotes = document.getElementById("editNotes");
+    const saveEditBtn = document.getElementById("saveEditBtn");
+    const replacePhotoBtn = document.getElementById("replacePhotoBtn");
+    const deleteIssueBtn = document.getElementById("deleteIssueBtn");
+    const takePhotoButton = document.getElementById("takePhotoBtn");
+
+    let appraisal = null;
+    let selectedRoom = null;
+    let currentIssuePhoto = null;
+    let editingIssueId = null;
+    let replacingPhotoForId = null;
+
+    function getStoredProperties() {
+      return JSON.parse(localStorage.getItem("properties")) || [];
+    }
+
+    function saveProperties(properties) {
+      localStorage.setItem("properties", JSON.stringify(properties));
+    }
+
+    function getCurrentAppraisal() {
+      const properties = getStoredProperties();
+      return properties[appraisalId] || null;
+    }
+
+    function updateAppraisal(appraisalData) {
+      const properties = getStoredProperties();
+      properties[appraisalId] = appraisalData;
+      saveProperties(properties);
+    }
+
+    function deleteAppraisal() {
+      const properties = getStoredProperties();
+      if (appraisalId < 0 || appraisalId >= properties.length) return;
+      if (!confirm("Delete this appraisal? This cannot be undone.")) return;
+      properties.splice(appraisalId, 1);
+      saveProperties(properties);
       window.location.href = "dashboard.html";
     }
 
-    let appraisal = null;
+    function formatIssueNumber(index) {
+      return `Issue ${String(index).padStart(2, "0")}`;
+    }
 
-    // Load appraisal data
-    function loadAppraisal() {
-      const properties = JSON.parse(localStorage.getItem("properties")) || [];
-      appraisal = properties[appraisalId];
+    function groupIssuesByRoom(issues = []) {
+      const grouped = {};
+      issues.forEach((issue) => {
+        const room = issue.room || "Other";
+        grouped[room] = grouped[room] || [];
+        grouped[room].push(issue);
+      });
+      return grouped;
+    }
 
-      if (!appraisal) {
-        window.location.href = "dashboard.html";
-        return;
-      }
+    function buildIssueCard(issue, index) {
+      return `
+        <div class="issue-card">
+          <div class="issue-thumb">
+            <img src="${issue.image}" alt="${issue.title}" />
+          </div>
+          <div class="issue-card-body">
+            <div class="issue-header-row">
+              <div>
+                <span class="issue-room">${issue.room}</span>
+                <h3>${formatIssueNumber(index)} · ${issue.title}</h3>
+              </div>
+              <span class="issue-severity ${issue.severity.toLowerCase()}">${issue.severity}</span>
+            </div>
+            <p class="issue-text"><strong>Problem:</strong> ${issue.description}</p>
+            <p class="issue-text"><strong>Notes:</strong> ${issue.notes || "No additional notes."}</p>
+            <div class="issue-actions">
+              <button class="action-btn" data-action="edit" data-id="${issue.id}">Edit</button>
+              <button class="action-btn" data-action="replace" data-id="${issue.id}">Replace photo</button>
+              <button class="action-btn delete" data-action="delete" data-id="${issue.id}">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
-      // Populate property info
-      document.getElementById("property-name").textContent = appraisal.address;
-      document.getElementById("property-location").textContent = appraisal.location;
-      document.getElementById("property-owner").textContent = `Owner: ${appraisal.owner}`;
-      document.getElementById("bedrooms-count").textContent = appraisal.bedrooms;
-      document.getElementById("bathrooms-count").textContent = appraisal.bathrooms;
-      document.getElementById("issues-count").textContent = appraisal.issues?.length || 0;
+    function renderIssues() {
+      const property = getCurrentAppraisal();
+      if (!property) return;
 
-      // Set status badge
-      const statusBadge = document.getElementById("status-badge");
-      statusBadge.textContent =
-        appraisal.status === "draft"
-          ? "Draft"
-          : appraisal.status === "sent"
-            ? "Report sent"
-            : "In progress";
-      statusBadge.className = `status-badge ${appraisal.status === "draft" ? "draft" : appraisal.status === "sent" ? "sent" : ""}`;
+      const issues = property.issues || [];
+      const grouped = groupIssuesByRoom(issues);
+      const roomNames = Object.keys(grouped).sort();
 
-      // Populate issues
-      const issuesContainer = document.getElementById("issues-container");
-      const issues = appraisal.issues || [];
+      document.getElementById("issues-count").textContent = issues.length;
+      document.getElementById("rooms-count").textContent = roomNames.length;
+      document.getElementById("trades-count").textContent = new Set(issues.map((issue) => issue.severity)).size;
 
       if (issues.length === 0) {
         issuesContainer.innerHTML = `
           <div class="empty-issues">
             <div class="empty-icon">📷</div>
             <h3>No issues captured yet</h3>
-            <p>Walk the property and snap the things that need fixing.</p>
-            <button id="capture-first-issue-btn" class="btn-capture-primary">
-              📷 Capture first issue
-            </button>
+            <p>Start by selecting a room and taking a photo.</p>
+            <button id="capture-first-issue-btn" class="btn-capture-primary">📷 Capture first issue</button>
           </div>
         `;
-        document
-          .getElementById("capture-first-issue-btn")
-          .addEventListener("click", captureIssue);
-      } else {
-        issuesContainer.innerHTML = issues
-          .map(
-            (issue, index) => `
-          <div class="issue-card">
-            <div class="issue-number">${index + 1}</div>
-            <div class="issue-content">
-              <h3>${issue.title}</h3>
-              <p>${issue.description}</p>
-              <div class="issue-meta">
-                <span class="trade-tag">${issue.trade}</span>
-                <span class="date">${new Date(issue.date).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </div>
-        `
-          )
-          .join("");
+        document.getElementById("capture-first-issue-btn").addEventListener("click", openRoomSelector);
+        return;
       }
+
+      issuesContainer.innerHTML = roomNames
+        .map((room) => {
+          const roomIssues = grouped[room];
+          return `
+            <div class="room-group">
+              <div class="room-label-header">
+                <h3>${room}</h3>
+                <span>${roomIssues.length} issue${roomIssues.length === 1 ? "" : "s"}</span>
+              </div>
+              ${roomIssues
+                .map((issue, index) => buildIssueCard(issue, index + 1))
+                .join("")}
+            </div>
+          `;
+        })
+        .join("");
     }
 
-    // Capture issue
-    function captureIssue() {
-      const title = prompt("Issue title:");
-      if (!title) return;
+    function populateRoomButtons() {
+      roomGrid.innerHTML = ROOMS.map((room) => `<button class="room-pill" type="button" data-room="${room}">${room}</button>`).join("");
+      roomGrid.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedRoom = button.dataset.room;
+          openCaptureModal(selectedRoom);
+          closeModal(roomModal);
+        });
+      });
+    }
 
-      const description = prompt("Issue description:");
-      if (!description) return;
+    function openModal(modal) {
+      modal.classList.add("active");
+      document.body.style.overflow = "hidden";
+    }
 
-      const trade = prompt("Trade type (e.g., Plumber, Electrician):");
-      if (!trade) return;
+    function closeModal(modal) {
+      modal.classList.remove("active");
+      document.body.style.overflow = "";
+    }
 
-      const properties = JSON.parse(localStorage.getItem("properties")) || [];
-      if (!properties[appraisalId].issues) {
-        properties[appraisalId].issues = [];
+    function openRoomSelector() {
+      populateRoomButtons();
+      openModal(roomModal);
+    }
+
+    function openCaptureModal(room) {
+      if (!room) return;
+      selectedRoom = room;
+      captureModalTitle.textContent = `Capture issue in ${room}`;
+      captureRoomLabel.textContent = room;
+      captureIssueTitle.value = "";
+      captureDescription.value = "";
+      captureNotes.value = "";
+      captureSeverity.value = "Medium";
+      currentIssuePhoto = null;
+      photoPreview.style.display = "none";
+      captureDetails.style.display = "none";
+      retakePhotoBtn.style.display = "none";
+      loadSuggestions(room);
+      openModal(captureModal);
+      openCamera();
+    }
+
+    function loadSuggestions(room) {
+      const suggestions = PROBLEM_LIBRARY[room] || PROBLEM_LIBRARY.Other;
+      suggestionList.innerHTML = suggestions
+        .map((suggestion) => `<button type="button" class="suggestion-pill">${suggestion}</button>`)
+        .join("");
+      suggestionList.querySelectorAll(".suggestion-pill").forEach((button) => {
+        button.addEventListener("click", () => {
+          captureIssueTitle.value = button.textContent;
+          captureDescription.value = `Inspect the ${button.textContent.toLowerCase()} in the ${room.toLowerCase()}.`;
+        });
+      });
+    }
+
+    function openEditModal(issueId) {
+      const property = getCurrentAppraisal();
+      if (!property) return;
+      const issue = property.issues?.find((item) => item.id === issueId);
+      if (!issue) return;
+
+      editingIssueId = issueId;
+      editRoom.innerHTML = ROOMS.map((room) => `<option value="${room}" ${room === issue.room ? "selected" : ""}>${room}</option>`).join("");
+      editSeverity.value = issue.severity || "Medium";
+      editTitle.value = issue.title;
+      editDescription.value = issue.description;
+      editNotes.value = issue.notes || "";
+      openModal(editIssueModal);
+    }
+
+    function refreshPropertyInfo() {
+      const property = getCurrentAppraisal();
+      if (!property) return;
+      document.getElementById("property-name").textContent = property.address;
+      document.getElementById("property-location").textContent = property.location;
+      document.getElementById("property-owner").textContent = `Owner: ${property.owner}`;
+      document.getElementById("bedrooms-count").textContent = property.bedrooms;
+      document.getElementById("bathrooms-count").textContent = property.bathrooms;
+      const statusBadge = document.getElementById("status-badge");
+      statusBadge.textContent = property.status === "draft" ? "Draft" : property.status === "sent" ? "Report sent" : "In progress";
+      statusBadge.className = `status-badge ${property.status === "draft" ? "draft" : property.status === "sent" ? "sent" : ""}`;
+    }
+
+    function addNewIssue() {
+      if (!currentIssuePhoto) {
+        alert("Please take a photo before saving the issue.");
+        return;
       }
-
-      properties[appraisalId].issues.push({
+      const title = captureIssueTitle.value.trim() || `Issue in ${selectedRoom}`;
+      const description = captureDescription.value.trim() || "No description added.";
+      const notes = captureNotes.value.trim();
+      const severity = captureSeverity.value;
+      const issue = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        room: selectedRoom,
         title,
         description,
-        trade,
+        notes,
+        severity,
+        image: currentIssuePhoto,
         date: new Date().toISOString(),
-      });
+      };
 
-      localStorage.setItem("properties", JSON.stringify(properties));
-      loadAppraisal();
+      const property = getCurrentAppraisal();
+      property.issues = property.issues || [];
+      property.issues.push(issue);
+      updateAppraisal(property);
+      renderIssues();
+      closeCaptureModalHandler();
     }
 
-    // Back button
-    document.getElementById("back-btn").addEventListener("click", () => {
-      window.location.href = "dashboard.html";
+    function saveEditedIssue() {
+      const property = getCurrentAppraisal();
+      if (!property) return;
+      const issue = property.issues?.find((item) => item.id === editingIssueId);
+      if (!issue) return;
+
+      issue.room = editRoom.value;
+      issue.severity = editSeverity.value;
+      issue.title = editTitle.value.trim() || issue.title;
+      issue.description = editDescription.value.trim() || issue.description;
+      issue.notes = editNotes.value.trim();
+      issue.date = new Date().toISOString();
+      updateAppraisal(property);
+      renderIssues();
+      closeModal(editIssueModal);
+    }
+
+    function deleteIssue(issueId) {
+      const property = getCurrentAppraisal();
+      if (!property) return;
+      property.issues = property.issues.filter((item) => item.id !== issueId);
+      updateAppraisal(property);
+      renderIssues();
+      closeModal(editIssueModal);
+    }
+
+    function replacePhoto(issueId) {
+      replacingPhotoForId = issueId;
+      const property = getCurrentAppraisal();
+      const issue = property.issues?.find((item) => item.id === issueId);
+      if (!issue) return;
+      selectedRoom = issue.room || "Other";
+      captureModalTitle.textContent = `Replace photo for ${issue.title}`;
+      captureRoomLabel.textContent = selectedRoom;
+      captureIssueTitle.value = issue.title;
+      captureDescription.value = issue.description;
+      captureNotes.value = issue.notes || "";
+      captureSeverity.value = issue.severity || "Medium";
+      currentIssuePhoto = null;
+      photoPreview.style.display = "none";
+      captureDetails.style.display = "none";
+      retakePhotoBtn.style.display = "none";
+      openModal(captureModal);
+      closeModal(editIssueModal);
+      openCamera();
+    }
+
+    function closeCaptureModalHandler() {
+      closeCamera();
+      currentIssuePhoto = null;
+      replacingPhotoForId = null;
+      closeModal(captureModal);
+    }
+
+    function handleCaptureActionClick(event) {
+      const actionButton = event.target.closest("button[data-action]");
+      if (!actionButton) return;
+      const action = actionButton.dataset.action;
+      const issueId = actionButton.dataset.id;
+      if (action === "edit") {
+        openEditModal(issueId);
+      } else if (action === "delete") {
+        deleteIssue(issueId);
+      } else if (action === "replace") {
+        replacePhoto(issueId);
+      }
+    }
+
+    function openReportPreview() {
+      window.location.href = `report-preview.html?id=${appraisalId}`;
+    }
+
+    function initReview() {
+      if (isNaN(appraisalId)) {
+        window.location.href = "dashboard.html";
+        return;
+      }
+
+      const property = getCurrentAppraisal();
+      if (!property) {
+        window.location.href = "dashboard.html";
+        return;
+      }
+
+      appraisal = property;
+      refreshPropertyInfo();
+      renderIssues();
+      populateRoomButtons();
+
+      captureBtn.addEventListener("click", openRoomSelector);
+      previewReportBtn.addEventListener("click", openReportPreview);
+      backBtn.addEventListener("click", () => {
+        window.location.href = "dashboard.html";
+      });
+      deleteAppraisalBtn.addEventListener("click", deleteAppraisal);
+      closeRoomModal.addEventListener("click", () => closeModal(roomModal));
+      closeCaptureModal.addEventListener("click", closeCaptureModalHandler);
+      closeEditModal.addEventListener("click", () => closeModal(editIssueModal));
+      cancelCaptureBtn.addEventListener("click", closeCaptureModalHandler);
+      saveIssueBtn.addEventListener("click", () => {
+        if (replacingPhotoForId) {
+          replaceIssuePhoto();
+        } else {
+          addNewIssue();
+        }
+      });
+      saveEditBtn.addEventListener("click", saveEditedIssue);
+      deleteIssueBtn.addEventListener("click", () => deleteIssue(editingIssueId));
+      replacePhotoBtn.addEventListener("click", () => {
+        if (editingIssueId) replacePhoto(editingIssueId);
+      });
+      retakePhotoBtn.addEventListener("click", () => {
+        currentIssuePhoto = null;
+        photoPreview.style.display = "none";
+        captureDetails.style.display = "none";
+        retakePhotoBtn.style.display = "none";
+        openCamera();
+      });
+      issuesContainer.addEventListener("click", handleCaptureActionClick);
+    }
+
+    function replaceIssuePhoto() {
+      if (!currentIssuePhoto) {
+        alert("Take a photo before replacing the issue photo.");
+        return;
+      }
+      const property = getCurrentAppraisal();
+      const issue = property.issues?.find((item) => item.id === replacingPhotoForId);
+      if (!issue) return;
+      issue.image = currentIssuePhoto;
+      issue.date = new Date().toISOString();
+      updateAppraisal(property);
+      renderIssues();
+      replacingPhotoForId = null;
+      closeCaptureModalHandler();
+    }
+
+    window.addEventListener("photocaptured", (event) => {
+      currentIssuePhoto = event.detail.image;
+      photoPreview.src = currentIssuePhoto;
+      photoPreview.style.display = "block";
+      captureDetails.style.display = "block";
+      retakePhotoBtn.style.display = "inline-flex";
     });
 
-    // Capture issue buttons
-    document.getElementById("capture-issue-btn").addEventListener("click", captureIssue);
-
-    // Preview report button
-    document.getElementById("preview-report-btn").addEventListener("click", () => {
-      alert("Report generation coming soon!");
-    });
-
-    // Initialize
     requireAuth().then(() => {
-      loadAppraisal();
+      initReview();
     });
   </script>
 </body>
 </html>
+

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report Preview · HomeList Pro</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/report.css" />
+</head>
+<body class="appraisal-page report-page">
+  <div class="appraisal-container">
+    <header class="appraisal-header report-header">
+      <button id="back-btn" class="back-btn">← Back to inspection</button>
+      <div class="header-actions">
+        <button id="exportPdfBtn" class="btn-capture">Export to PDF</button>
+        <button id="exportWordBtn" class="btn-secondary">Export to Word</button>
+      </div>
+    </header>
+
+    <section class="report-preview-wrapper">
+      <div id="reportFrame" class="report-frame"></div>
+    </section>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5turzUp2Cb0XQhIjZGxp36ZrcdOWmQ9B4/DW0gCfcN2pNwX9EZczQw4Fda8dE1/9tubZKQ0kFPSYyMaS+7A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-kqk/0Txxe/Y2KWd6d9qE26iyFl4ZktZvfW0Mmz8qMh6j2CPYv1W3H+UonYaWn/o4pR1sLkh7XAJbiE2MTrSeBw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script type="module" src="./report.js"></script>
+</body>
+</html>

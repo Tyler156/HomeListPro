@@ -116,22 +116,107 @@
       </section>
 
       <section id="profile-view" class="view">
-        <!-- Profile view stores user details and simple preference toggles -->
-        <div class="content-card">
-          <h3>Profile and settings</h3>
-          <p>Agency branding, reminder settings, and AI capture preferences can live here.</p>
-          <div class="profile-grid">
-            <div>
-              <strong>Display name</strong>
-              <p>Jordan Smith</p>
+        <div class="profile-page">
+          <div class="section-heading">
+            <p class="eyebrow">Workspace preferences</p>
+            <h3>Profile &amp; Settings</h3>
+          </div>
+
+          <div class="profile-card">
+            <div class="profile-card-main">
+              <div class="profile-avatar">JS</div>
+              <div class="profile-card-copy">
+                <div>
+                  <h4>Jordan Smith</h4>
+                  <p class="profile-role">Senior Appraiser</p>
+                  <p class="profile-company">HomeList Pro • Auckland</p>
+                </div>
+                <div class="profile-meta">
+                  <span>Registered 14 Mar 2024</span>
+                  <span>Last active 2h ago</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <strong>Agency</strong>
-              <p>HomeList Pro</p>
+            <button class="secondary profile-edit-btn" type="button">Edit</button>
+          </div>
+
+          <div class="settings-stack">
+            <div class="content-card settings-card">
+              <div class="settings-card-header">
+                <h4>Account</h4>
+              </div>
+              <div class="detail-list">
+                <div class="detail-row">
+                  <div class="detail-label">
+                    <span class="detail-icon">👤</span>
+                    <div>
+                      <span class="detail-title">Full Name</span>
+                      <span class="detail-value">Jordan Smith</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">
+                    <span class="detail-icon">✉️</span>
+                    <div>
+                      <span class="detail-title">Email</span>
+                      <span class="detail-value">jordan@homelistpro.co.nz</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">
+                    <span class="detail-icon">📞</span>
+                    <div>
+                      <span class="detail-title">Phone</span>
+                      <span class="detail-value">+64 21 456 789</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">
+                    <span class="detail-icon">🏢</span>
+                    <div>
+                      <span class="detail-title">Agency</span>
+                      <span class="detail-value">HomeList Pro</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <strong>AI detection</strong>
-              <p>On</p>
+
+            <div class="content-card settings-card">
+              <div class="settings-card-header">
+                <h4>Report Branding</h4>
+                <p>Your logo appears on generated reports and shared exports.</p>
+              </div>
+              <div class="branding-row">
+                <div class="branding-placeholder">
+                  <div class="branding-logo">HP</div>
+                  <div>
+                    <strong>Upload your agency logo</strong>
+                    <p>PNG or JPG up to 2MB.</p>
+                  </div>
+                </div>
+                <button class="secondary upload-btn" type="button">Upload</button>
+              </div>
+            </div>
+
+            <div class="content-card settings-card">
+              <div class="settings-card-header">
+                <h4>Preferences</h4>
+                <p>Use AI suggestions to help classify property issues from photos.</p>
+              </div>
+              <div class="preferences-row">
+                <div>
+                  <h4>AI Image Detection</h4>
+                  <p>Automatically flag likely defects and defects categories in captured images.</p>
+                </div>
+                <label class="toggle" aria-label="AI Image Detection">
+                  <input type="checkbox" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -223,6 +308,32 @@
     </div>
   </div>
 
+  <!-- Profile Edit Modal -->
+  <div id="profile-edit-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit profile</h2>
+        <button id="profile-modal-close-btn" type="button" class="modal-close">✕</button>
+      </div>
+      <form id="profile-edit-form" class="modal-form">
+        <div class="form-group">
+          <label for="profile-fullname">Full name</label>
+          <input type="text" id="profile-fullname" name="fullname" placeholder="Jordan Smith" required />
+        </div>
+        <div class="form-group">
+          <label for="profile-role">Role</label>
+          <input type="text" id="profile-role" name="role" placeholder="Senior Appraiser" required />
+        </div>
+        <div class="form-group">
+          <label for="profile-company">Company</label>
+          <input type="text" id="profile-company" name="company" placeholder="HomeList Pro • Auckland" required />
+        </div>
+        <button type="submit" class="btn-primary-large">Save changes</button>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
     import { requireAuth, signOutUser } from "./js/auth.js";
 
@@ -230,6 +341,7 @@
     requireAuth().then((user) => {
       document.getElementById("user-email").textContent = user.email;
       loadProperties();
+      loadProfile(user.email);
     });
 
     const signoutBtn = document.getElementById("signout-btn");
@@ -238,9 +350,20 @@
     const title = document.getElementById("view-title");
     const newAppraisalBtn = document.getElementById("new-appraisal-btn");
     const addFirstPropertyBtn = document.getElementById("add-first-property-btn");
-    const modal = document.getElementById("new-appraisal-modal");
+    const newAppraisalModal = document.getElementById("new-appraisal-modal");
     const modalCloseBtn = document.getElementById("modal-close-btn");
     const form = document.getElementById("new-appraisal-form");
+    const profileEditBtn = document.querySelector(".profile-edit-btn");
+    const profileEditModal = document.getElementById("profile-edit-modal");
+    const profileModalCloseBtn = document.getElementById("profile-modal-close-btn");
+    const profileEditForm = document.getElementById("profile-edit-form");
+    const profileFullnameInput = document.getElementById("profile-fullname");
+    const profileRoleInput = document.getElementById("profile-role");
+    const profileCompanyInput = document.getElementById("profile-company");
+    const profileNameHeading = document.querySelector(".profile-card-copy h4");
+    const profileRoleText = document.querySelector(".profile-role");
+    const profileCompanyText = document.querySelector(".profile-company");
+    const profileAvatar = document.querySelector(".profile-avatar");
 
     const switchView = (button) => {
       const targetView = button.getAttribute("data-view");
@@ -265,9 +388,99 @@
       button.addEventListener("click", () => switchView(button));
     });
 
+    function getStoredProperties() {
+      return JSON.parse(localStorage.getItem("properties")) || [];
+    }
+
+    function saveProperties(properties) {
+      localStorage.setItem("properties", JSON.stringify(properties));
+    }
+
+    function getStoredProfile() {
+      return JSON.parse(localStorage.getItem("profile")) || null;
+    }
+
+    function saveProfile(profile) {
+      localStorage.setItem("profile", JSON.stringify(profile));
+    }
+
+    function getProfileDefaults(email) {
+      return {
+        fullname: "Jordan Smith",
+        role: "Senior Appraiser",
+        company: "HomeList Pro • Auckland",
+        email: email || "",
+      };
+    }
+
+    function profileInitials(name) {
+      return name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0].toUpperCase())
+        .join("");
+    }
+
+    function loadProfile(userEmail) {
+      const profile = getStoredProfile() || getProfileDefaults(userEmail);
+      profile.email = userEmail || profile.email;
+      profileNameHeading.textContent = profile.fullname;
+      profileRoleText.textContent = profile.role;
+      profileCompanyText.textContent = profile.company;
+      profileAvatar.textContent = profileInitials(profile.fullname);
+      if (!getStoredProfile()) {
+        saveProfile(profile);
+      }
+    }
+
+    function openModal(modalElement) {
+      modalElement.classList.add("active");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal(modalElement) {
+      if (!modalElement) return;
+      modalElement.classList.remove("active");
+      document.body.style.overflow = "";
+      if (modalElement === newAppraisalModal) {
+        form.reset();
+      }
+    }
+
+    function openProfileEdit() {
+      const profile = getStoredProfile() || getProfileDefaults(document.getElementById("user-email").textContent);
+      profileFullnameInput.value = profile.fullname;
+      profileRoleInput.value = profile.role;
+      profileCompanyInput.value = profile.company;
+      openModal(profileEditModal);
+    }
+
+    function saveProfileChanges(event) {
+      event.preventDefault();
+      const profile = {
+        fullname: profileFullnameInput.value.trim() || "Jordan Smith",
+        role: profileRoleInput.value.trim() || "Senior Appraiser",
+        company: profileCompanyInput.value.trim() || "HomeList Pro • Auckland",
+        email: document.getElementById("user-email").textContent,
+      };
+      saveProfile(profile);
+      loadProfile(profile.email);
+      closeModal(profileEditModal);
+    }
+
+    function deleteProperty(index) {
+      const properties = getStoredProperties();
+      if (index < 0 || index >= properties.length) return;
+      if (!confirm("Delete this appraisal? This cannot be undone.")) return;
+      properties.splice(index, 1);
+      saveProperties(properties);
+      loadProperties();
+    }
+
     // Load properties from local storage (placeholder for real backend)
     function loadProperties() {
-      const properties = JSON.parse(localStorage.getItem("properties")) || [];
+      const properties = getStoredProperties();
       const propertyList = document.getElementById("property-list");
       const emptyState = document.getElementById("empty-state");
 
@@ -288,10 +501,17 @@
               <h4>${property.address}</h4>
               <p>${property.location} · ${property.bedrooms} bd · ${property.bathrooms} ba</p>
             </div>
-            <span class="status-badge ${property.status === "draft" ? "draft" : property.status === "sent" ? "sent" : ""}">${property.status === "draft" ? "Draft" : property.status === "sent" ? "Report sent" : "In progress"}</span>
+            <div class="property-card-actions">
+              <span class="status-badge ${property.status === "draft" ? "draft" : property.status === "sent" ? "sent" : ""}">${property.status === "draft" ? "Draft" : property.status === "sent" ? "Report sent" : "In progress"}</span>
+              <button type="button" class="property-delete-btn secondary">Delete</button>
+            </div>
           `;
           card.addEventListener("click", () => {
             viewAppraisal(index);
+          });
+          card.querySelector(".property-delete-btn").addEventListener("click", (event) => {
+            event.stopPropagation();
+            deleteProperty(index);
           });
           propertyList.appendChild(card);
         });
@@ -299,19 +519,6 @@
 
       // Update stats
       document.getElementById("stat-appraisals").textContent = properties.length;
-    }
-
-    // Open new appraisal modal
-    function openModal() {
-      modal.classList.add("active");
-      document.body.style.overflow = "hidden";
-    }
-
-    // Close new appraisal modal
-    function closeModal() {
-      modal.classList.remove("active");
-      document.body.style.overflow = "";
-      form.reset();
     }
 
     // Navigate to appraisal detail page
@@ -339,21 +546,31 @@
       properties.push(property);
       localStorage.setItem("properties", JSON.stringify(properties));
 
-      closeModal();
+      closeModal(newAppraisalModal);
       loadProperties();
       
       // Navigate to the newly created appraisal
       viewAppraisal(properties.length - 1);
     });
 
-    newAppraisalBtn.addEventListener("click", openModal);
-    addFirstPropertyBtn.addEventListener("click", openModal);
-    modalCloseBtn.addEventListener("click", closeModal);
+    newAppraisalBtn.addEventListener("click", () => openModal(newAppraisalModal));
+    addFirstPropertyBtn.addEventListener("click", () => openModal(newAppraisalModal));
+    modalCloseBtn.addEventListener("click", () => closeModal(newAppraisalModal));
+    if (profileEditBtn) {
+      profileEditBtn.addEventListener("click", openProfileEdit);
+    }
+    profileModalCloseBtn.addEventListener("click", () => closeModal(profileEditModal));
+    profileEditForm.addEventListener("submit", saveProfileChanges);
 
     // Close modal on overlay click
-    document.querySelector(".modal-overlay").addEventListener("click", closeModal);
+    document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+      overlay.addEventListener("click", () => {
+        const parentModal = overlay.closest(".modal");
+        closeModal(parentModal);
+      });
+    });
 
-    document.querySelector(".mobile-action").addEventListener("click", openModal);
+    document.querySelector(".mobile-action").addEventListener("click", () => openModal(newAppraisalModal));
 
     signoutBtn.addEventListener("click", async () => {
       await signOutUser();
