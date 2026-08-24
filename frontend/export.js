@@ -8,10 +8,12 @@ export async function exportReportPdf(reportElement, filename) {
   });
 
   document.body.appendChild(clone);
+  // allowTaint has to stay off now that photos load from Cloud Storage. A
+  // tainted canvas makes the toDataURL call below throw a security error.
   const canvas = await html2canvas(clone, {
     scale: 2,
     useCORS: true,
-    allowTaint: true,
+    allowTaint: false,
     backgroundColor: "#ffffff",
   });
   document.body.removeChild(clone);

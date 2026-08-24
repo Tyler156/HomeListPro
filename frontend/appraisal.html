@@ -197,9 +197,16 @@
   <script type="module">
     import { requireAuth } from "./js/auth.js";
     import { openCamera, closeCamera } from "./js/camera.js";
+    import {
+      getProperty,
+      updateProperty,
+      deleteProperty,
+      uploadIssuePhoto,
+    } from "./js/store.js";
 
     const params = new URLSearchParams(window.location.search);
-    const appraisalId = parseInt(params.get("id"), 10);
+    // A database key, so this stays a string.
+    const appraisalId = params.get("id");
     const ROOMS = [
       "Kitchen",
       "Bathroom",
@@ -257,38 +264,32 @@
     const deleteIssueBtn = document.getElementById("deleteIssueBtn");
     const takePhotoButton = document.getElementById("takePhotoBtn");
 
+    // The appraisal is fetched once in initReview and kept here, so the render
+    // functions below can stay synchronous. Every change updates this object
+    // and then writes the issues array back to the database.
     let appraisal = null;
     let selectedRoom = null;
     let currentIssuePhoto = null;
     let editingIssueId = null;
     let replacingPhotoForId = null;
 
-    function getStoredProperties() {
-      return JSON.parse(localStorage.getItem("properties")) || [];
-    }
-
-    function saveProperties(properties) {
-      localStorage.setItem("properties", JSON.stringify(properties));
-    }
-
     function getCurrentAppraisal() {
-      const properties = getStoredProperties();
-      return properties[appraisalId] || null;
+      return appraisal;
     }
 
-    function updateAppraisal(appraisalData) {
-      const properties = getStoredProperties();
-      properties[appraisalId] = appraisalData;
-      saveProperties(properties);
+    function persistIssues() {
+      return updateProperty(appraisalId, { issues: appraisal.issues });
     }
 
-    function deleteAppraisal() {
-      const properties = getStoredProperties();
-      if (appraisalId < 0 || appraisalId >= properties.length) return;
+    async function deleteAppraisal() {
       if (!confirm("Delete this appraisal? This cannot be undone.")) return;
-      properties.splice(appraisalId, 1);
-      saveProperties(properties);
-      window.location.href = "dashboard.html";
+      try {
+        await deleteProperty(appraisalId);
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        console.error(err);
+        alert("Could not delete this appraisal: " + err.message);
+      }
     }
 
     function formatIssueNumber(index) {
@@ -309,7 +310,7 @@
       return `
         <div class="issue-card">
           <div class="issue-thumb">
-            <img src="${issue.image}" alt="${issue.title}" />
+            <img src="${issue.image}" alt="${issue.title}" crossorigin="anonymous" />
           </div>
           <div class="issue-card-body">
             <div class="issue-header-row">
@@ -459,35 +460,49 @@
       statusBadge.className = `status-badge ${property.status === "draft" ? "draft" : property.status === "sent" ? "sent" : ""}`;
     }
 
-    function addNewIssue() {
+    async function addNewIssue() {
       if (!currentIssuePhoto) {
         alert("Please take a photo before saving the issue.");
         return;
       }
-      const title = captureIssueTitle.value.trim() || `Issue in ${selectedRoom}`;
-      const description = captureDescription.value.trim() || "No description added.";
-      const notes = captureNotes.value.trim();
-      const severity = captureSeverity.value;
-      const issue = {
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        room: selectedRoom,
-        title,
-        description,
-        notes,
-        severity,
-        image: currentIssuePhoto,
-        date: new Date().toISOString(),
-      };
 
       const property = getCurrentAppraisal();
-      property.issues = property.issues || [];
-      property.issues.push(issue);
-      updateAppraisal(property);
-      renderIssues();
-      closeCaptureModalHandler();
+      if (!property) return;
+
+      // The upload takes a moment, so lock the button while it runs.
+      saveIssueBtn.disabled = true;
+      saveIssueBtn.textContent = "Saving...";
+
+      try {
+        const issueId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        const photo = await uploadIssuePhoto(appraisalId, issueId, currentIssuePhoto);
+
+        property.issues = property.issues || [];
+        property.issues.push({
+          id: issueId,
+          room: selectedRoom,
+          title: captureIssueTitle.value.trim() || `Issue in ${selectedRoom}`,
+          description: captureDescription.value.trim() || "No description added.",
+          notes: captureNotes.value.trim(),
+          severity: captureSeverity.value,
+          image: photo.url,
+          imagePath: photo.path,
+          date: new Date().toISOString(),
+        });
+
+        await persistIssues();
+        renderIssues();
+        closeCaptureModalHandler();
+      } catch (err) {
+        console.error(err);
+        alert("Could not save this issue: " + err.message);
+      } finally {
+        saveIssueBtn.disabled = false;
+        saveIssueBtn.textContent = "Save issue";
+      }
     }
 
-    function saveEditedIssue() {
+    async function saveEditedIssue() {
       const property = getCurrentAppraisal();
       if (!property) return;
       const issue = property.issues?.find((item) => item.id === editingIssueId);
@@ -499,18 +514,33 @@
       issue.description = editDescription.value.trim() || issue.description;
       issue.notes = editNotes.value.trim();
       issue.date = new Date().toISOString();
-      updateAppraisal(property);
-      renderIssues();
-      closeModal(editIssueModal);
+
+      try {
+        await persistIssues();
+        renderIssues();
+        closeModal(editIssueModal);
+      } catch (err) {
+        console.error(err);
+        alert("Could not save your changes: " + err.message);
+      }
     }
 
-    function deleteIssue(issueId) {
+    async function deleteIssue(issueId) {
       const property = getCurrentAppraisal();
       if (!property) return;
-      property.issues = property.issues.filter((item) => item.id !== issueId);
-      updateAppraisal(property);
-      renderIssues();
-      closeModal(editIssueModal);
+      // issues is missing rather than empty when an appraisal has none yet,
+      // because the database does not store empty lists.
+      const remaining = (property.issues || []).filter((item) => item.id !== issueId);
+
+      try {
+        property.issues = remaining;
+        await persistIssues();
+        renderIssues();
+        closeModal(editIssueModal);
+      } catch (err) {
+        console.error(err);
+        alert("Could not delete this issue: " + err.message);
+      }
     }
 
     function replacePhoto(issueId) {
@@ -559,19 +589,25 @@
       window.location.href = `report-preview.html?id=${appraisalId}`;
     }
 
-    function initReview() {
-      if (isNaN(appraisalId)) {
+    async function initReview() {
+      if (!appraisalId) {
         window.location.href = "dashboard.html";
         return;
       }
 
-      const property = getCurrentAppraisal();
-      if (!property) {
+      try {
+        appraisal = await getProperty(appraisalId);
+      } catch (err) {
+        console.error(err);
+        alert("Could not load this appraisal: " + err.message);
+        return;
+      }
+
+      if (!appraisal) {
         window.location.href = "dashboard.html";
         return;
       }
 
-      appraisal = property;
       refreshPropertyInfo();
       renderIssues();
       populateRoomButtons();
@@ -608,7 +644,7 @@
       issuesContainer.addEventListener("click", handleCaptureActionClick);
     }
 
-    function replaceIssuePhoto() {
+    async function replaceIssuePhoto() {
       if (!currentIssuePhoto) {
         alert("Take a photo before replacing the issue photo.");
         return;
@@ -616,25 +652,39 @@
       const property = getCurrentAppraisal();
       const issue = property.issues?.find((item) => item.id === replacingPhotoForId);
       if (!issue) return;
-      issue.image = currentIssuePhoto;
-      issue.date = new Date().toISOString();
-      updateAppraisal(property);
-      renderIssues();
-      replacingPhotoForId = null;
-      closeCaptureModalHandler();
+
+      saveIssueBtn.disabled = true;
+      saveIssueBtn.textContent = "Saving...";
+
+      try {
+        const photo = await uploadIssuePhoto(appraisalId, issue.id, currentIssuePhoto);
+        issue.image = photo.url;
+        issue.imagePath = photo.path;
+        issue.date = new Date().toISOString();
+
+        await persistIssues();
+        renderIssues();
+        replacingPhotoForId = null;
+        closeCaptureModalHandler();
+      } catch (err) {
+        console.error(err);
+        alert("Could not replace the photo: " + err.message);
+      } finally {
+        saveIssueBtn.disabled = false;
+        saveIssueBtn.textContent = "Save issue";
+      }
     }
 
     window.addEventListener("photocaptured", (event) => {
-      currentIssuePhoto = event.detail.image;
-      photoPreview.src = currentIssuePhoto;
+      // The blob is what gets uploaded; the object URL is just for the preview.
+      currentIssuePhoto = event.detail.blob;
+      photoPreview.src = event.detail.previewUrl;
       photoPreview.style.display = "block";
       captureDetails.style.display = "block";
       retakePhotoBtn.style.display = "inline-flex";
     });
 
-    requireAuth().then(() => {
-      initReview();
-    });
+    requireAuth().then(initReview);
   </script>
 </body>
 </html>

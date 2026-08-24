@@ -104,14 +104,21 @@
       </section>
 
       <section id="trades-view" class="view">
-        <!-- Trades view lists trusted contacts and quick actions -->
-        <div class="content-card">
-          <h3>Trades contacts</h3>
-          <ul class="list">
-            <li><strong>Electrician</strong> · Contact: 021 123 4567 · Handles lighting and wiring issues</li>
-            <li><strong>Cleaner</strong> · Contact: hello@cleanplus.co.nz · Handles end-of-job finishing</li>
-            <li><strong>Painter</strong> · Contact: 027 789 1011 · Handles cracks, touch-ups and exterior work</li>
-          </ul>
+        <div class="trades-page-shell">
+          <div class="trades-header fade-up">
+            <div class="trades-header-copy">
+              <h3>Trusted trades</h3>
+              <p>The people who get the jobs done. They're auto-matched to each problem and printed on the homeowner's report.</p>
+            </div>
+            <button id="trades-add-contact-btn" class="trade-add-btn" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" fill="currentColor"></path>
+              </svg>
+              <span>Add contact</span>
+            </button>
+          </div>
+
+          <div id="trades-grid" class="trades-grid"></div>
         </div>
       </section>
 
@@ -151,7 +158,7 @@
                     <span class="detail-icon">👤</span>
                     <div>
                       <span class="detail-title">Full Name</span>
-                      <span class="detail-value">Jordan Smith</span>
+                      <span id="account-fullname" class="detail-value">Jordan Smith</span>
                     </div>
                   </div>
                 </div>
@@ -160,7 +167,7 @@
                     <span class="detail-icon">✉️</span>
                     <div>
                       <span class="detail-title">Email</span>
-                      <span class="detail-value">jordan@homelistpro.co.nz</span>
+                      <span id="account-email" class="detail-value">jordan@homelistpro.co.nz</span>
                     </div>
                   </div>
                 </div>
@@ -169,7 +176,7 @@
                     <span class="detail-icon">📞</span>
                     <div>
                       <span class="detail-title">Phone</span>
-                      <span class="detail-value">+64 21 456 789</span>
+                      <span id="account-phone" class="detail-value">—</span>
                     </div>
                   </div>
                 </div>
@@ -308,6 +315,63 @@
     </div>
   </div>
 
+  <!-- Trades Contact Modal -->
+  <div id="trades-contact-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-content-compact">
+      <div class="modal-header">
+        <h2>Add contact</h2>
+        <button id="trades-modal-close-btn" type="button" class="modal-close" aria-label="Close">✕</button>
+      </div>
+      <form id="trades-contact-form" class="modal-form">
+        <p class="modal-subtitle">Build a trusted tradesperson entry for future appraisals and reports.</p>
+        <p id="trade-modal-error" class="modal-error" role="alert"></p>
+        <div class="form-group">
+          <label for="trade-company">Company name</label>
+          <input type="text" id="trade-company" name="company" placeholder="e.g. Spark & Sons Electrical" required />
+        </div>
+        <div class="form-group">
+          <label for="trade-person">Person name</label>
+          <input type="text" id="trade-person" name="person" placeholder="e.g. Dave Tui" required />
+        </div>
+        <div class="form-group">
+          <label for="trade-select">Trade</label>
+          <select id="trade-select" name="trade" class="select-input" required>
+            <option value="">Select a trade</option>
+            <option value="electrician">Electrician</option>
+            <option value="painter">Painter</option>
+            <option value="exterior-cleaning">Exterior Cleaning</option>
+            <option value="handyman">Handyman</option>
+            <option value="cleaner">Cleaner</option>
+            <option value="gardener">Gardener</option>
+            <option value="home-stager">Home Stager</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trade-phone">Phone</label>
+            <input type="tel" id="trade-phone" name="phone" placeholder="e.g. 021445980" required />
+          </div>
+          <div class="form-group">
+            <label for="trade-email">Email</label>
+            <input type="email" id="trade-email" name="email" placeholder="e.g. dave@sparkandsons.co.nz" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trade-rating">Rating</label>
+            <input type="number" id="trade-rating" name="rating" min="0" max="5" step="0.1" value="4.8" required />
+          </div>
+          <div class="form-group">
+            <label for="trade-jobs">Jobs</label>
+            <input type="number" id="trade-jobs" name="jobs" min="1" step="1" value="24" required />
+          </div>
+        </div>
+        <button type="submit" class="btn-primary-large">Save contact</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Profile Edit Modal -->
   <div id="profile-edit-modal" class="modal">
     <div class="modal-overlay"></div>
@@ -321,6 +385,14 @@
           <label for="profile-fullname">Full name</label>
           <input type="text" id="profile-fullname" name="fullname" placeholder="Jordan Smith" required />
         </div>
+          <div class="form-group">
+            <label for="profile-phone">Phone (optional)</label>
+            <input type="tel" id="profile-phone" name="phone" placeholder="e.g. +64 21 456 789" />
+          </div>
+          <div class="form-group">
+            <label for="profile-email">Email</label>
+            <input type="email" id="profile-email" name="email" placeholder="you@example.com" readonly />
+          </div>
         <div class="form-group">
           <label for="profile-role">Role</label>
           <input type="text" id="profile-role" name="role" placeholder="Senior Appraiser" required />
@@ -335,13 +407,30 @@
   </div>
 
   <script type="module">
+    import { updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { requireAuth, signOutUser } from "./js/auth.js";
+    import { auth } from "./js/firebase-config.js";
+    import {
+      listProperties,
+      createProperty,
+      deleteProperty as deletePropertyFromDb,
+      getProfile,
+      saveProfile,
+      listTrades,
+      createTrade,
+      seedTrades,
+    } from "./js/store.js";
 
-    // Keep the signed-in user visible in the shell header.
-    requireAuth().then((user) => {
+    // Nothing can load until auth has resolved, because every store.js call
+    // builds its path from the signed-in user's uid.
+    requireAuth().then(async (user) => {
       document.getElementById("user-email").textContent = user.email;
-      loadProperties();
-      loadProfile(user.email);
+      try {
+        await Promise.all([loadProperties(), loadProfile(user), renderTrades()]);
+      } catch (err) {
+        console.error(err);
+        alert("Could not load your data: " + err.message);
+      }
     });
 
     const signoutBtn = document.getElementById("signout-btn");
@@ -364,6 +453,141 @@
     const profileRoleText = document.querySelector(".profile-role");
     const profileCompanyText = document.querySelector(".profile-company");
     const profileAvatar = document.querySelector(".profile-avatar");
+    const tradesGrid = document.getElementById("trades-grid");
+    const tradesAddContactBtn = document.getElementById("trades-add-contact-btn");
+    const tradesContactModal = document.getElementById("trades-contact-modal");
+    const tradesModalCloseBtn = document.getElementById("trades-modal-close-btn");
+    const tradesContactForm = document.getElementById("trades-contact-form");
+    const tradesModalError = document.getElementById("trade-modal-error");
+
+    const initialTrades = [
+      { id: "spark-and-sons-electrical", trade: "electrician", label: "Electrician", company: "Spark & Sons Electrical", person: "Dave Tui", phone: "021445980", email: "dave@sparkandsons.co.nz", rating: 4.9, jobs: 38 },
+      { id: "coastline-painters", trade: "painter", label: "Painter", company: "Coastline Painters", person: "Mere Kahu", phone: "027456112", email: "mere@coastlinepainters.co.nz", rating: 4.8, jobs: 24 },
+      { id: "blastpro-wash", trade: "exterior-cleaning", label: "Exterior Cleaning", company: "BlastPro Wash", person: "Sione Faleolo", phone: "022987654", email: "sione@blastpro.co.nz", rating: 5.0, jobs: 51 },
+      { id: "fixit-handyman", trade: "handyman", label: "Handyman", company: "FixIt Handyman", person: "Greg Donnelly", phone: "021778123", email: "greg@fixit.co.nz", rating: 4.7, jobs: 19 },
+      { id: "sparkle-home-cleaning", trade: "cleaner", label: "Cleaner", company: "Sparkle Home Cleaning", person: "Anika Rao", phone: "027654321", email: "anika@sparklehome.co.nz", rating: 4.9, jobs: 44 },
+      { id: "greenthumb-gardens", trade: "gardener", label: "Gardener", company: "GreenThumb Gardens", person: "Tom Webb", phone: "021333444", email: "tom@greenthumb.co.nz", rating: 4.6, jobs: 27 },
+      { id: "styled-to-sell", trade: "home-stager", label: "Home Stager", company: "Styled to Sell", person: "Priya Naidu", phone: "022115566", email: "priya@styledtosell.co.nz", rating: 4.9, jobs: 33 },
+    ];
+
+    function getInitials(name) {
+      return name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0].toUpperCase())
+        .join("");
+    }
+
+    function getAvatarHue(index) {
+      return (index * 47) % 360;
+    }
+
+    function openTradeModal() {
+      tradesModalError.textContent = "";
+      tradesContactForm.reset();
+      openModal(tradesContactModal);
+    }
+
+    function closeTradeModal() {
+      closeModal(tradesContactModal);
+      tradesModalError.textContent = "";
+      tradesContactForm.reset();
+    }
+
+    async function renderTrades() {
+      let contacts = await listTrades();
+      if (contacts.length === 0) {
+        // First time this account has opened the trades tab.
+        await seedTrades(initialTrades);
+        contacts = await listTrades();
+      }
+      tradesGrid.innerHTML = "";
+
+      contacts.forEach((contact, index) => {
+        const card = document.createElement("article");
+        card.className = "trade-card fade-up";
+        card.style.animationDelay = `${index * 30}ms`;
+        card.innerHTML = `
+          <div class="trade-card-top">
+            <div class="trade-avatar" style="--trade-hue: ${getAvatarHue(index)};">${getInitials(contact.person)}</div>
+            <span class="trade-pill">${contact.label}</span>
+          </div>
+          <h4>${contact.company}</h4>
+          <p class="trade-person">${contact.person}</p>
+          <div class="trade-rating">
+            <span class="trade-star">★</span>
+            <strong>${contact.rating.toFixed(1)}</strong>
+            <span>· ${contact.jobs} jobs</span>
+          </div>
+          <div class="trade-actions">
+            <button class="trade-btn trade-call-btn" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.4 15.4 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.3 2.3.46 3.5.46a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.3 21 3 13.7 3 4.5A1 1 0 0 1 4 3.5h3.6a1 1 0 0 1 1 1c0 1.2.16 2.4.46 3.5a1 1 0 0 1-.24 1l-2.2 2.2Z" fill="currentColor"></path></svg>
+              <span>Call</span>
+            </button>
+            <button class="trade-btn trade-email-btn" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Zm2 .2 5.7 4.7a1 1 0 0 0 1.2 0l5.7-4.7H6Zm13 2.2-5.8 4.8a2.5 2.5 0 0 1-3.4 0L5 8.9v7.6c0 .3.2.5.5.5h11c.3 0 .5-.2.5-.5V8.9Z" fill="currentColor"></path></svg>
+              <span>Email</span>
+            </button>
+          </div>
+        `;
+
+        card.querySelector(".trade-call-btn").addEventListener("click", () => {
+          window.location.href = `tel:${contact.phone}`;
+        });
+
+        card.querySelector(".trade-email-btn").addEventListener("click", () => {
+          window.location.href = `mailto:${contact.email}`;
+        });
+
+        tradesGrid.appendChild(card);
+      });
+    }
+
+    async function handleTradeSubmit(event) {
+      event.preventDefault();
+      tradesModalError.textContent = "";
+
+      const formData = new FormData(tradesContactForm);
+      const company = String(formData.get("company") || "").trim();
+      const person = String(formData.get("person") || "").trim();
+      const tradeKey = String(formData.get("trade") || "").trim();
+      const tradeLabel = tradesContactForm.elements.trade.selectedOptions[0]?.text || "Trade";
+      const phone = String(formData.get("phone") || "").trim();
+      const email = String(formData.get("email") || "").trim();
+      const rating = parseFloat(formData.get("rating"));
+      const jobs = parseInt(formData.get("jobs"), 10);
+
+      if (!company || !person || !tradeKey || !phone || !email) {
+        tradesModalError.textContent = "Please fill in every required field.";
+        return;
+      }
+
+      if (!email.includes("@") || !email.includes(".")) {
+        tradesModalError.textContent = "Please enter a valid email address.";
+        return;
+      }
+
+      const newContact = {
+        trade: tradeKey,
+        label: tradeLabel,
+        company,
+        person,
+        phone,
+        email,
+        rating: Number.isFinite(rating) ? rating : 4.8,
+        jobs: Number.isFinite(jobs) ? jobs : 24,
+      };
+
+      try {
+        await createTrade(newContact);
+        await renderTrades();
+        closeTradeModal();
+      } catch (err) {
+        console.error(err);
+        tradesModalError.textContent = "Could not save this contact: " + err.message;
+      }
+    }
 
     const switchView = (button) => {
       const targetView = button.getAttribute("data-view");
@@ -388,28 +612,13 @@
       button.addEventListener("click", () => switchView(button));
     });
 
-    function getStoredProperties() {
-      return JSON.parse(localStorage.getItem("properties")) || [];
-    }
-
-    function saveProperties(properties) {
-      localStorage.setItem("properties", JSON.stringify(properties));
-    }
-
-    function getStoredProfile() {
-      return JSON.parse(localStorage.getItem("profile")) || null;
-    }
-
-    function saveProfile(profile) {
-      localStorage.setItem("profile", JSON.stringify(profile));
-    }
-
-    function getProfileDefaults(email) {
+    function getProfileDefaults(email, displayName) {
       return {
-        fullname: "Jordan Smith",
+        fullname: displayName || "Jordan Smith",
         role: "Senior Appraiser",
         company: "HomeList Pro • Auckland",
         email: email || "",
+        phone: "",
       };
     }
 
@@ -422,15 +631,30 @@
         .join("");
     }
 
-    function loadProfile(userEmail) {
-      const profile = getStoredProfile() || getProfileDefaults(userEmail);
-      profile.email = userEmail || profile.email;
+    async function loadProfile(user) {
+      // `user` can be either an email string or a Firebase user object
+      const isUserObj = user && typeof user === "object" && user.email;
+      const email = isUserObj ? user.email : user;
+      const displayName = isUserObj ? user.displayName : undefined;
+      const stored = await getProfile();
+      const profile = stored || getProfileDefaults(email, displayName);
+      profile.email = email || profile.email;
+      profile.fullname = profile.fullname || displayName || "Jordan Smith";
+      profile.phone = profile.phone || profile.phone === "" ? profile.phone : "";
+      // update UI
       profileNameHeading.textContent = profile.fullname;
       profileRoleText.textContent = profile.role;
       profileCompanyText.textContent = profile.company;
       profileAvatar.textContent = profileInitials(profile.fullname);
-      if (!getStoredProfile()) {
-        saveProfile(profile);
+      // Account block
+      const accName = document.getElementById("account-fullname");
+      const accEmail = document.getElementById("account-email");
+      const accPhone = document.getElementById("account-phone");
+      if (accName) accName.textContent = profile.fullname;
+      if (accEmail) accEmail.textContent = profile.email || email || "";
+      if (accPhone) accPhone.textContent = profile.phone || "—";
+      if (!stored) {
+        await saveProfile(profile);
       }
     }
 
@@ -448,39 +672,60 @@
       }
     }
 
-    function openProfileEdit() {
-      const profile = getStoredProfile() || getProfileDefaults(document.getElementById("user-email").textContent);
+    async function openProfileEdit() {
+      const stored = await getProfile();
+      const defaults = getProfileDefaults(document.getElementById("user-email").textContent, stored?.fullname);
+      const profile = stored || defaults;
       profileFullnameInput.value = profile.fullname;
       profileRoleInput.value = profile.role;
       profileCompanyInput.value = profile.company;
+      const profilePhoneInput = document.getElementById("profile-phone");
+      const profileEmailInput = document.getElementById("profile-email");
+      if (profilePhoneInput) profilePhoneInput.value = profile.phone || "";
+      if (profileEmailInput) profileEmailInput.value = profile.email || document.getElementById("user-email").textContent || "";
       openModal(profileEditModal);
     }
 
-    function saveProfileChanges(event) {
+    async function saveProfileChanges(event) {
       event.preventDefault();
+      const profilePhoneInput = document.getElementById("profile-phone");
+      const profileEmailInput = document.getElementById("profile-email");
       const profile = {
         fullname: profileFullnameInput.value.trim() || "Jordan Smith",
         role: profileRoleInput.value.trim() || "Senior Appraiser",
         company: profileCompanyInput.value.trim() || "HomeList Pro • Auckland",
-        email: document.getElementById("user-email").textContent,
+        email: (profileEmailInput && profileEmailInput.value) || document.getElementById("user-email").textContent,
+        phone: (profilePhoneInput && profilePhoneInput.value.trim()) || "",
       };
-      saveProfile(profile);
-      loadProfile(profile.email);
-      closeModal(profileEditModal);
+
+      try {
+        await saveProfile(profile);
+        // Keep the name on the Firebase account itself in step with the profile,
+        // otherwise it stays whatever was typed at signup.
+        if (auth.currentUser && profile.fullname !== auth.currentUser.displayName) {
+          await updateProfile(auth.currentUser, { displayName: profile.fullname });
+        }
+        await loadProfile(profile.email || profile);
+        closeModal(profileEditModal);
+      } catch (err) {
+        console.error(err);
+        alert("Could not save your profile: " + err.message);
+      }
     }
 
-    function deleteProperty(index) {
-      const properties = getStoredProperties();
-      if (index < 0 || index >= properties.length) return;
+    async function deleteProperty(propertyId) {
       if (!confirm("Delete this appraisal? This cannot be undone.")) return;
-      properties.splice(index, 1);
-      saveProperties(properties);
-      loadProperties();
+      try {
+        await deletePropertyFromDb(propertyId);
+        await loadProperties();
+      } catch (err) {
+        console.error(err);
+        alert("Could not delete this appraisal: " + err.message);
+      }
     }
 
-    // Load properties from local storage (placeholder for real backend)
-    function loadProperties() {
-      const properties = getStoredProperties();
+    async function loadProperties() {
+      const properties = await listProperties();
       const propertyList = document.getElementById("property-list");
       const emptyState = document.getElementById("empty-state");
 
@@ -492,7 +737,7 @@
       } else {
         propertyList.style.display = "grid";
         emptyState.style.display = "none";
-        properties.forEach((property, index) => {
+        properties.forEach((property) => {
           const card = document.createElement("article");
           card.className = "property-card";
           card.style.cursor = "pointer";
@@ -507,11 +752,11 @@
             </div>
           `;
           card.addEventListener("click", () => {
-            viewAppraisal(index);
+            viewAppraisal(property.id);
           });
           card.querySelector(".property-delete-btn").addEventListener("click", (event) => {
             event.stopPropagation();
-            deleteProperty(index);
+            deleteProperty(property.id);
           });
           propertyList.appendChild(card);
         });
@@ -519,43 +764,50 @@
 
       // Update stats
       document.getElementById("stat-appraisals").textContent = properties.length;
+      document.getElementById("stat-issues").textContent = properties.reduce(
+        (total, property) => total + (property.issues ? property.issues.length : 0),
+        0
+      );
     }
 
-    // Navigate to appraisal detail page
-    function viewAppraisal(index) {
-      window.location.href = `appraisal.html?id=${index}`;
+    // Navigate to appraisal detail page. The id is a database key.
+    function viewAppraisal(propertyId) {
+      window.location.href = `appraisal.html?id=${propertyId}`;
     }
 
     // Form submission
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const formData = new FormData(form);
-      const property = {
-        address: formData.get("address"),
-        location: formData.get("location"),
-        owner: formData.get("owner"),
-        bedrooms: parseInt(formData.get("bedrooms")),
-        bathrooms: parseInt(formData.get("bathrooms")),
-        status: "in progress",
-        issues: [],
-        createdAt: new Date().toISOString(),
-      };
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
 
-      const properties = JSON.parse(localStorage.getItem("properties")) || [];
-      properties.push(property);
-      localStorage.setItem("properties", JSON.stringify(properties));
+      try {
+        const formData = new FormData(form);
+        const propertyId = await createProperty({
+          address: formData.get("address"),
+          location: formData.get("location"),
+          owner: formData.get("owner"),
+          bedrooms: parseInt(formData.get("bedrooms")),
+          bathrooms: parseInt(formData.get("bathrooms")),
+        });
 
-      closeModal(newAppraisalModal);
-      loadProperties();
-      
-      // Navigate to the newly created appraisal
-      viewAppraisal(properties.length - 1);
+        closeModal(newAppraisalModal);
+        viewAppraisal(propertyId);
+      } catch (err) {
+        console.error(err);
+        alert("Could not save this appraisal: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+      }
     });
 
     newAppraisalBtn.addEventListener("click", () => openModal(newAppraisalModal));
     addFirstPropertyBtn.addEventListener("click", () => openModal(newAppraisalModal));
     modalCloseBtn.addEventListener("click", () => closeModal(newAppraisalModal));
+    tradesAddContactBtn.addEventListener("click", openTradeModal);
+    tradesModalCloseBtn.addEventListener("click", closeTradeModal);
+    tradesContactForm.addEventListener("submit", handleTradeSubmit);
     if (profileEditBtn) {
       profileEditBtn.addEventListener("click", openProfileEdit);
     }

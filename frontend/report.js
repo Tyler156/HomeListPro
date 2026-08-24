@@ -1,7 +1,10 @@
 import { exportReportPdf, exportReportWord } from "./export.js";
+import { requireAuth } from "./js/auth.js";
+import { getProperty } from "./js/store.js";
 
 const params = new URLSearchParams(window.location.search);
-const appraisalId = parseInt(params.get("id"), 10);
+// A database key, so this stays a string.
+const appraisalId = params.get("id");
 const reportFrame = document.getElementById("reportFrame");
 const backBtn = document.getElementById("back-btn");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
@@ -51,11 +54,6 @@ const ROOM_PROBLEMS = {
     "Loose fittings",
   ],
 };
-
-function getStoredProperty() {
-  const properties = JSON.parse(localStorage.getItem("properties")) || [];
-  return properties[appraisalId] || null;
-}
 
 function normalizeRoom(room) {
   if (!room) return "Other";
@@ -111,7 +109,7 @@ function buildIssueCard(issue, index) {
   return `
     <div class="report-issue-card">
       <div class="report-issue-photo">
-        <img src="${issue.image}" alt="${issue.title}" />
+        <img src="${issue.image}" alt="${issue.title}" crossorigin="anonymous" />
       </div>
       <div class="report-issue-copy">
         <div class="report-issue-heading">
@@ -127,8 +125,7 @@ function buildIssueCard(issue, index) {
   `;
 }
 
-function buildReport() {
-  const property = getStoredProperty();
+function buildReport(property) {
   if (!property) {
     reportFrame.innerHTML = `<div class="report-empty-state"><p>No appraisal data found.</p></div>`;
     return;
@@ -166,8 +163,8 @@ function buildReport() {
   `;
 }
 
-function init() {
-  if (isNaN(appraisalId)) {
+async function init() {
+  if (!appraisalId) {
     window.location.href = "dashboard.html";
     return;
   }
@@ -184,7 +181,13 @@ function init() {
     exportReportWord(document.querySelector(".report-sheet"), `HomelistPro_Report_${appraisalId}.doc`);
   });
 
-  buildReport();
+  try {
+    buildReport(await getProperty(appraisalId));
+  } catch (err) {
+    console.error(err);
+    reportFrame.innerHTML = `<div class="report-empty-state"><p>Could not load this report.</p></div>`;
+  }
 }
 
-init();
+// This page reads from the database too, so it has to wait for auth like the others.
+requireAuth().then(init);
