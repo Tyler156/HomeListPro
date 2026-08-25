@@ -3,7 +3,8 @@
     "origin": [
       "http://localhost:8000",
       "https://home-list-pro.web.app",
-      "https://home-list-pro.firebaseapp.com"
+      "https://home-list-pro.firebaseapp.com",
+      "https://homelistpro.netlify.app"
     ],
     "method": ["GET"],
     "responseHeader": ["Content-Type"],
