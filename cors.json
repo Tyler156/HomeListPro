@@ -1,6 +1,10 @@
 [
   {
-    "origin": ["http://localhost:8000"],
+    "origin": [
+      "http://localhost:8000",
+      "https://home-list-pro.web.app",
+      "https://home-list-pro.firebaseapp.com"
+    ],
     "method": ["GET"],
     "responseHeader": ["Content-Type"],
     "maxAgeSeconds": 3600

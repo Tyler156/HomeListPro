@@ -37,6 +37,7 @@
 
   <script type="module">
     import { signUp, redirectIfAuthed } from "./js/auth.js";
+    import { saveProfile } from "./js/store.js";
 
     redirectIfAuthed();
 
@@ -80,6 +81,10 @@
       setBusy(true);
       try {
         await signUp(email, password, fullName);
+        // Write the profile from what was actually typed, rather than leaving
+        // the dashboard to infer it from a display name that may not have
+        // finished saving yet.
+        await saveProfile({ fullname: fullName, email, role: "", company: "", phone: "" });
         window.location.replace("dashboard.html");
       } catch (err) {
         showError(err);

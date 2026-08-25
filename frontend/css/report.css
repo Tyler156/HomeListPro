@@ -37,6 +37,14 @@
   font-weight: 700;
 }
 
+/* bounded both ways so a big logo cannot shove the cover title off the page */
+.report-cover-logo {
+  max-width: 220px;
+  max-height: 64px;
+  object-fit: contain;
+  display: block;
+}
+
 .report-cover-title {
   margin: 0;
   font-size: 2.4rem;

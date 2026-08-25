@@ -1,59 +1,13 @@
 import { exportReportPdf, exportReportWord } from "./export.js";
 import { requireAuth } from "./js/auth.js";
-import { getProperty } from "./js/store.js";
+import { getProperty, getProfile } from "./js/store.js";
 
 const params = new URLSearchParams(window.location.search);
-// A database key, so this stays a string.
 const appraisalId = params.get("id");
 const reportFrame = document.getElementById("reportFrame");
 const backBtn = document.getElementById("back-btn");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
 const exportWordBtn = document.getElementById("exportWordBtn");
-
-const ROOM_PROBLEMS = {
-  Kitchen: [
-    "Damaged cupboard",
-    "Broken drawer",
-    "Cracked bench",
-    "Leaking tap",
-  ],
-  Bathroom: [
-    "Mould",
-    "Broken tiles",
-    "Water damage",
-    "Blocked drain",
-  ],
-  "Living Room": [
-    "Sun-faded carpet",
-    "Loose skirting",
-    "Cracked window",
-    "Damaged paint",
-  ],
-  Bedroom: [
-    "Wardrobe door issue",
-    "Loose light fitting",
-    "Uneven flooring",
-    "Window seal damage",
-  ],
-  Exterior: [
-    "Broken gutter",
-    "Damaged cladding",
-    "Overgrown garden",
-    "Peeling paint",
-  ],
-  Garage: [
-    "Door track issue",
-    "Lighting fault",
-    "Floor staining",
-    "Storage damage",
-  ],
-  Other: [
-    "General wear",
-    "Poor finish",
-    "Minor damage",
-    "Loose fittings",
-  ],
-};
 
 function normalizeRoom(room) {
   if (!room) return "Other";
@@ -70,10 +24,16 @@ function groupIssuesByRoom(issues = []) {
   return grouped;
 }
 
-function buildReportPropertySection(property) {
+function buildReportPropertySection(property, profile) {
+  const agency = profile.company || property.agency || "HomeList Pro";
+  // needs crossorigin="anonymous" or html2canvas taints the canvas and the PDF export dies
+  const brand = profile.logoUrl
+    ? `<img class="report-cover-logo" src="${profile.logoUrl}" alt="${agency} logo" crossorigin="anonymous" />`
+    : `<div class="report-cover-brand">${agency}</div>`;
+
   return `
     <div class="report-cover">
-      <div class="report-cover-brand">HomeList Pro</div>
+      ${brand}
       <div>
         <p class="report-cover-title">Property Inspection Report</p>
         <p class="report-cover-subtitle">${property.address}</p>
@@ -83,11 +43,11 @@ function buildReportPropertySection(property) {
     <section class="report-details">
       <div>
         <span>Prepared By</span>
-        <strong>HomeList Pro</strong>
+        <strong>${profile.fullname || "HomeList Pro"}</strong>
       </div>
       <div>
         <span>Agency</span>
-        <strong>${property.agency || "HomeList Pro"}</strong>
+        <strong>${agency}</strong>
       </div>
       <div>
         <span>Date</span>
@@ -125,7 +85,7 @@ function buildIssueCard(issue, index) {
   `;
 }
 
-function buildReport(property) {
+function buildReport(property, profile) {
   if (!property) {
     reportFrame.innerHTML = `<div class="report-empty-state"><p>No appraisal data found.</p></div>`;
     return;
@@ -154,7 +114,7 @@ function buildReport(property) {
 
   reportFrame.innerHTML = `
     <div class="report-sheet">
-      ${buildReportPropertySection(property)}
+      ${buildReportPropertySection(property, profile)}
       <div class="report-summary-note">
         <p>This inspection report summarises identified issues by room and provides a recommended action plan for presenting the property at its best.</p>
       </div>
@@ -177,17 +137,18 @@ async function init() {
     await exportReportPdf(document.querySelector(".report-sheet"), `HomelistPro_Report_${appraisalId}.pdf`);
   });
 
-  exportWordBtn.addEventListener("click", () => {
-    exportReportWord(document.querySelector(".report-sheet"), `HomelistPro_Report_${appraisalId}.doc`);
+  exportWordBtn.addEventListener("click", async () => {
+    await exportReportWord(document.querySelector(".report-sheet"), `HomelistPro_Report_${appraisalId}.doc`);
   });
 
   try {
-    buildReport(await getProperty(appraisalId));
+    // getProfile() returns null for an account that has never saved one
+    const [property, profile] = await Promise.all([getProperty(appraisalId), getProfile()]);
+    buildReport(property, profile || {});
   } catch (err) {
     console.error(err);
     reportFrame.innerHTML = `<div class="report-empty-state"><p>Could not load this report.</p></div>`;
   }
 }
 
-// This page reads from the database too, so it has to wait for auth like the others.
 requireAuth().then(init);

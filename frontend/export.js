@@ -8,8 +8,11 @@ export async function exportReportPdf(reportElement, filename) {
   });
 
   document.body.appendChild(clone);
-  // allowTaint has to stay off now that photos load from Cloud Storage. A
-  // tainted canvas makes the toDataURL call below throw a security error.
+  // html2canvas only draws what is already decoded, so wait for the images first
+  await Promise.all(
+    [...clone.querySelectorAll("img")].map((img) => img.decode().catch(() => {}))
+  );
+  // allowTaint must stay off or the toDataURL below throws a security error
   const canvas = await html2canvas(clone, {
     scale: 2,
     useCORS: true,
@@ -38,8 +41,37 @@ export async function exportReportPdf(reportElement, filename) {
   pdf.save(filename);
 }
 
-export function exportReportWord(reportElement, filename) {
+// Word will not fetch remote images out of a .doc, so a Cloud Storage URL turns up
+// as a broken box - redraw each one through a canvas to get a base64 data URI
+function inlineImages(sourceElement, targetElement) {
+  const sources = [...sourceElement.querySelectorAll("img")];
+  const targets = [...targetElement.querySelectorAll("img")];
+
+  sources.forEach((source, index) => {
+    const target = targets[index];
+    if (!target || !source.src || source.src.startsWith("data:")) return;
+    if (!source.naturalWidth) return;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = source.naturalWidth;
+      canvas.height = source.naturalHeight;
+      canvas.getContext("2d").drawImage(source, 0, 0);
+      target.src = canvas.toDataURL("image/png");
+    } catch (err) {
+      console.error("Could not embed an image in the Word export", err);
+    }
+  });
+}
+
+export async function exportReportWord(reportElement, filename) {
   if (!reportElement) return;
+
+  await Promise.all(
+    [...reportElement.querySelectorAll("img")].map((img) => img.decode().catch(() => {}))
+  );
+  // work on a copy so the report on screen keeps its original srcs
+  const clone = reportElement.cloneNode(true);
+  inlineImages(reportElement, clone);
 
   const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -51,6 +83,8 @@ export function exportReportWord(reportElement, filename) {
           h1, h2, h3, h4 { color: #0f172a; }
           img { max-width: 100%; height: auto; border-radius: 10px; }
           .report-cover { margin-bottom: 24px; }
+          .report-cover-brand { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: #0f9577; margin-bottom: 12px; }
+          .report-cover-logo { max-height: 64px; max-width: 220px; border-radius: 0; margin-bottom: 12px; }
           .report-cover-title { font-size: 32px; margin: 0; }
           .report-cover-subtitle { margin: 8px 0 0; color: #4f7fbf; }
           .report-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
@@ -65,7 +99,7 @@ export function exportReportWord(reportElement, filename) {
         </style>
       </head>
       <body>
-        ${reportElement.outerHTML}
+        ${clone.outerHTML}
       </body>
     </html>
   `;

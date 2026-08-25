@@ -7,8 +7,7 @@ const captureDetails = document.getElementById("captureDetails");
 
 let stream = null;
 
-// Phone cameras give us about 4000px wide. 1600px is plenty for a report photo
-// and keeps the upload down to a few hundred KB instead of several MB.
+// Keep the photo to a max width of 1600 so that the photos are not too big!
 const MAX_PHOTO_WIDTH = 1600;
 
 export async function openCamera() {
@@ -23,7 +22,7 @@ export async function openCamera() {
 
     video.srcObject = stream;
     await video.play();
-    // Bring the live view back, since taking a photo hides it.
+    // taking a photo hides this, so bring it back
     video.style.display = "block";
   } catch (err) {
     alert("Unable to access camera.");
@@ -55,16 +54,14 @@ if (takePhotoBtn) {
   takePhotoBtn.addEventListener("click", () => {
     if (!stream || !video || !canvas) return;
 
-    // Shrink the photo before we do anything else, keeping the aspect ratio.
+    // Shrink the photo first so that it is not too big.
     const scale = Math.min(1, MAX_PHOTO_WIDTH / video.videoWidth);
     const ctx = canvas.getContext("2d");
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // toBlob gives us a real file to upload to Cloud Storage. The old
-    // toDataURL version handed back a base64 string, which was only useful
-    // back when photos were being stuffed into local storage.
+    // toBlob gives a real file to upload to Cloud Storage
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
@@ -75,9 +72,7 @@ if (takePhotoBtn) {
           preview.style.display = "block";
         }
 
-        // The video and the preview are siblings in the camera stage and the
-        // stylesheet keeps both as display:block, so a stopped video would sit
-        // on top of the photo as a black box. Hide it once we have the still.
+        // a stopped video sits over the photo as a black box - hide it
         video.style.display = "none";
 
         if (retakePhotoBtn) {

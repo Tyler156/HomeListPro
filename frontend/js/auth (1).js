@@ -8,6 +8,9 @@ import {
 
 import { auth } from "./firebase-config.js";
 
+// Set while signUp is running so redirectIfAuthed ignores the auth state change
+// that creating the account triggers. Without this the listener navigates away
+// before the display name and profile have been saved.
 let signUpInProgress = false;
 
 export function signIn(email, password) {
@@ -33,8 +36,8 @@ export function signOutUser() {
   return signOut(auth);
 }
 
-
-// User not logged in - so retuns to the login page
+// Resolves with the current user once auth state is known.
+// If unauthenticated, redirects to `redirectTo` and never resolves.
 export function requireAuth(redirectTo = "login.html") {
   return new Promise((resolve) => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -48,10 +51,10 @@ export function requireAuth(redirectTo = "login.html") {
   });
 }
 
-// If a user is already signed in - redirect them to the Dashboard (Main Page)
+// On the login page: bounce already-signed-in users straight to the dashboard.
 export function redirectIfAuthed(target = "dashboard.html") {
   const unsub = onAuthStateChanged(auth, (user) => {
-    // signup page navigates itself once the profile is written
+    // The signup page navigates itself once the profile has been written.
     if (signUpInProgress) return;
     if (user) {
       unsub();

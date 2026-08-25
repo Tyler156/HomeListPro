@@ -9,6 +9,9 @@
         },
         "trades": {
           ".indexOn": "createdAt"
+        },
+        "problems": {
+          ".indexOn": "createdAt"
         }
       }
     }

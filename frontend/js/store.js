@@ -14,26 +14,23 @@ import {
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
+  deleteObject,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 import { db, storage, auth } from "./firebase-config.js";
 
-// Every path below is built from the signed-in user's uid, so one agent can
-// never read or write another agent's data. Throwing when nobody is signed in
-// is deliberate: it fails loudly instead of writing to a wrong path.
+// every path is built from the signed-in uid, so no user can touch another user's data
 function currentUid() {
   const user = auth.currentUser;
   if (!user) throw new Error("Not signed in");
   return user.uid;
 }
 
-// Builds a path like "users/abc123/properties/xyz789".
 function userPath(...parts) {
   return ["users", currentUid(), ...parts].join("/");
 }
 
-// orderByChild only ever sorts ascending, and snapshot.val() would lose that
-// order anyway, so the rows have to be collected with forEach and flipped.
+// orderByChild only sorts ascending and .val() loses the order anyway - collect and flip
 function toListNewestFirst(snapshot) {
   const rows = [];
   snapshot.forEach((childSnapshot) => {
@@ -55,7 +52,6 @@ export async function getProperty(propertyId) {
   return { id: snapshot.key, ...snapshot.val() };
 }
 
-// Returns the new key, which the dashboard uses for the appraisal URL.
 export async function createProperty(property) {
   const created = push(dbRef(db, userPath("properties")));
   await set(created, {
@@ -80,15 +76,29 @@ export async function deleteProperty(propertyId) {
 
 // ---------- Issue photos ----------
 
-// Photos go to Cloud Storage and only the download URL is kept in the database.
-// Storing the image itself would mean re-downloading every photo of every
-// appraisal just to draw the dashboard list.
+// photo goes to Cloud Storage, only the URL is kept in the database
 export async function uploadIssuePhoto(propertyId, issueId, blob) {
   const path = `users/${currentUid()}/properties/${propertyId}/${issueId}.jpg`;
   const fileRef = storageRef(storage, path);
   await uploadBytes(fileRef, blob, { contentType: "image/jpeg" });
   const url = await getDownloadURL(fileRef);
   return { url, path };
+}
+
+// ---------- Agency logo ----------
+
+// one fixed filename per user, so a new logo just overwrites the old one
+// PNG not JPEG - logos need the transparent background
+export async function uploadAgencyLogo(blob) {
+  const path = `users/${currentUid()}/branding/logo.png`;
+  const fileRef = storageRef(storage, path);
+  await uploadBytes(fileRef, blob, { contentType: "image/png" });
+  const url = await getDownloadURL(fileRef);
+  return { url, path };
+}
+
+export async function deleteAgencyLogo(path) {
+  await deleteObject(storageRef(storage, path));
 }
 
 // ---------- Profile ----------
@@ -99,7 +109,6 @@ export async function getProfile() {
   return snapshot.val();
 }
 
-// update() creates the profile the first time and patches it after that.
 export async function saveProfile(profile) {
   await update(dbRef(db, userPath("profile")), { ...profile, updatedAt: serverTimestamp() });
 }
@@ -117,8 +126,7 @@ export async function createTrade(contact) {
   return created.key;
 }
 
-// Gives a brand new account the default contact list. One update() call writing
-// all seven children at once, so they either all appear or none do.
+// one update() call so a new account gets all seven or none
 export async function seedTrades(contacts) {
   const updates = {};
   contacts.forEach((contact) => {
@@ -126,4 +134,38 @@ export async function seedTrades(contacts) {
     updates[id] = { ...fields, createdAt: serverTimestamp() };
   });
   await update(dbRef(db, userPath("trades")), updates);
+}
+
+// ---------- Problems ----------
+
+export async function listProblems() {
+  const snapshot = await get(query(dbRef(db, userPath("problems")), orderByChild("createdAt")));
+  return toListNewestFirst(snapshot);
+}
+
+export async function createProblem(problem) {
+  const created = push(dbRef(db, userPath("problems")));
+  await set(created, { ...problem, createdAt: serverTimestamp() });
+  return created.key;
+}
+
+export async function updateProblem(problemId, changes) {
+  await update(dbRef(db, userPath("problems", problemId)), {
+    ...changes,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteProblem(problemId) {
+  await remove(dbRef(db, userPath("problems", problemId)));
+}
+
+// ids are slugs not push keys, so running this twice overwrites instead of duplicating
+export async function seedProblems(problems) {
+  const updates = {};
+  problems.forEach((problem) => {
+    const { id, ...fields } = problem;
+    updates[id] = { ...fields, createdAt: serverTimestamp() };
+  });
+  await update(dbRef(db, userPath("problems")), updates);
 }

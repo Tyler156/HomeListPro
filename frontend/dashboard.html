@@ -35,15 +35,15 @@
           <p>Photos are auto-tagged with likely problems.</p>
         </div>
         <p class="user-line">Signed in as <strong id="user-email">…</strong></p>
-        <button id="signout-btn" type="button" class="secondary">Sign out</button>
+        <button id="signout-btn" type="button" class="secondary" data-signout>Sign out</button>
       </div>
     </aside>
 
-    <!-- Main content area that changes with each tab -->
+    <!-- Main content -->
     <main class="main-panel">
       <header class="mobile-top-bar">
         <span class="mobile-brand">HomeList Pro</span>
-        <span class="mobile-avatar">H</span>
+        <button class="mobile-avatar" id="mobile-avatar" type="button" aria-label="Open your profile">…</button>
       </header>
       <header class="top-bar">
         <div>
@@ -53,7 +53,7 @@
       </header>
 
       <section id="appraisals-view" class="view active">
-        <!-- Appraisals view shows the property list and capture entry point -->
+        <!-- Appraisals tab -->
         <div class="hero-grid">
           <div class="hero-card">
             <h3>Good morning</h3>
@@ -92,14 +92,22 @@
       </section>
 
       <section id="problems-view" class="view">
-        <!-- Problems library holds reusable issues with fixes and matched trades -->
-        <div class="content-card">
-          <h3>Problem library</h3>
-          <ul class="list">
-            <li><strong>Cracked driveway</strong> · Fix: resurfacing and sealant · Trade: paving</li>
-            <li><strong>Leaking tap</strong> · Fix: replace washer and tighten fittings · Trade: plumber</li>
-            <li><strong>Peeling paint</strong> · Fix: prep and repaint wall surface · Trade: painter</li>
-          </ul>
+        <!-- Problems tab -->
+        <div class="trades-page-shell">
+          <div class="trades-header fade-up">
+            <div class="trades-header-copy">
+              <h3>Problem library</h3>
+              <p>Reusable problems with their fix and the trade who handles them. They become the quick suggestions while you're capturing an appraisal.</p>
+            </div>
+            <button id="problems-add-btn" class="trade-add-btn" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" fill="currentColor"></path>
+              </svg>
+              <span>Add problem</span>
+            </button>
+          </div>
+
+          <div id="problems-grid" class="trades-grid"></div>
         </div>
       </section>
 
@@ -131,16 +139,12 @@
 
           <div class="profile-card">
             <div class="profile-card-main">
-              <div class="profile-avatar">JS</div>
+              <div class="profile-avatar"></div>
               <div class="profile-card-copy">
                 <div>
-                  <h4>Jordan Smith</h4>
-                  <p class="profile-role">Senior Appraiser</p>
-                  <p class="profile-company">HomeList Pro • Auckland</p>
-                </div>
-                <div class="profile-meta">
-                  <span>Registered 14 Mar 2024</span>
-                  <span>Last active 2h ago</span>
+                  <h4></h4>
+                  <p class="profile-role"></p>
+                  <p class="profile-company"></p>
                 </div>
               </div>
             </div>
@@ -158,7 +162,7 @@
                     <span class="detail-icon">👤</span>
                     <div>
                       <span class="detail-title">Full Name</span>
-                      <span id="account-fullname" class="detail-value">Jordan Smith</span>
+                      <span id="account-fullname" class="detail-value">—</span>
                     </div>
                   </div>
                 </div>
@@ -167,7 +171,7 @@
                     <span class="detail-icon">✉️</span>
                     <div>
                       <span class="detail-title">Email</span>
-                      <span id="account-email" class="detail-value">jordan@homelistpro.co.nz</span>
+                      <span id="account-email" class="detail-value">—</span>
                     </div>
                   </div>
                 </div>
@@ -185,7 +189,7 @@
                     <span class="detail-icon">🏢</span>
                     <div>
                       <span class="detail-title">Agency</span>
-                      <span class="detail-value">HomeList Pro</span>
+                      <span id="account-agency" class="detail-value">—</span>
                     </div>
                   </div>
                 </div>
@@ -199,13 +203,20 @@
               </div>
               <div class="branding-row">
                 <div class="branding-placeholder">
-                  <div class="branding-logo">HP</div>
+                  <div class="branding-logo" id="branding-logo">
+                    <img id="branding-logo-img" alt="Agency logo" hidden />
+                    <span id="branding-logo-fallback">HP</span>
+                  </div>
                   <div>
                     <strong>Upload your agency logo</strong>
                     <p>PNG or JPG up to 2MB.</p>
                   </div>
                 </div>
-                <button class="secondary upload-btn" type="button">Upload</button>
+                <div class="branding-actions">
+                  <input type="file" id="logo-input" accept="image/png,image/jpeg" hidden />
+                  <button class="secondary upload-btn" type="button" id="logo-upload-btn">Upload</button>
+                  <button class="secondary upload-btn" type="button" id="logo-remove-btn" hidden>Remove</button>
+                </div>
               </div>
             </div>
 
@@ -224,6 +235,14 @@
                   <span class="toggle-slider"></span>
                 </label>
               </div>
+            </div>
+
+            <div class="content-card settings-card signout-card">
+              <div class="settings-card-header">
+                <h4>Session</h4>
+                <p class="user-line">Signed in as <strong id="user-email-mobile">…</strong></p>
+              </div>
+              <button type="button" class="secondary signout-btn" data-signout>Sign out</button>
             </div>
           </div>
         </div>
@@ -336,16 +355,8 @@
         </div>
         <div class="form-group">
           <label for="trade-select">Trade</label>
-          <select id="trade-select" name="trade" class="select-input" required>
-            <option value="">Select a trade</option>
-            <option value="electrician">Electrician</option>
-            <option value="painter">Painter</option>
-            <option value="exterior-cleaning">Exterior Cleaning</option>
-            <option value="handyman">Handyman</option>
-            <option value="cleaner">Cleaner</option>
-            <option value="gardener">Gardener</option>
-            <option value="home-stager">Home Stager</option>
-          </select>
+          <!-- filled from TRADE_OPTIONS -->
+          <select id="trade-select" name="trade" class="select-input" required></select>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -372,6 +383,39 @@
     </div>
   </div>
 
+  <!-- Problem Modal - add and edit both use this one -->
+  <div id="problem-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-content-compact">
+      <div class="modal-header">
+        <h2 id="problem-modal-title">Add problem</h2>
+        <button id="problem-modal-close-btn" type="button" class="modal-close" aria-label="Close">✕</button>
+      </div>
+      <form id="problem-form" class="modal-form">
+        <p class="modal-subtitle">Save a problem once and reuse it on every appraisal.</p>
+        <p id="problem-modal-error" class="modal-error" role="alert"></p>
+        <div class="form-group">
+          <label for="problem-room">Room</label>
+          <select id="problem-room" name="room" class="select-input" required></select>
+        </div>
+        <div class="form-group">
+          <label for="problem-title">Problem</label>
+          <input type="text" id="problem-title" name="title" placeholder="e.g. Leaking tap" required />
+        </div>
+        <div class="form-group">
+          <label for="problem-fix">Recommended fix</label>
+          <textarea id="problem-fix" name="fix" rows="3" class="textarea-input" placeholder="e.g. Replace washer and tighten fittings" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="problem-trade">Trade</label>
+          <select id="problem-trade" name="tradeKey" class="select-input" required></select>
+        </div>
+        <button type="submit" class="btn-primary-large">Save problem</button>
+        <button id="problem-delete-btn" type="button" class="btn-secondary problem-delete-btn">Delete problem</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Profile Edit Modal -->
   <div id="profile-edit-modal" class="modal">
     <div class="modal-overlay"></div>
@@ -383,7 +427,7 @@
       <form id="profile-edit-form" class="modal-form">
         <div class="form-group">
           <label for="profile-fullname">Full name</label>
-          <input type="text" id="profile-fullname" name="fullname" placeholder="Jordan Smith" required />
+          <input type="text" id="profile-fullname" name="fullname" placeholder="Your full name" required />
         </div>
           <div class="form-group">
             <label for="profile-phone">Phone (optional)</label>
@@ -395,11 +439,11 @@
           </div>
         <div class="form-group">
           <label for="profile-role">Role</label>
-          <input type="text" id="profile-role" name="role" placeholder="Senior Appraiser" required />
+          <input type="text" id="profile-role" name="role" placeholder="Your role" />
         </div>
         <div class="form-group">
           <label for="profile-company">Company</label>
-          <input type="text" id="profile-company" name="company" placeholder="HomeList Pro • Auckland" required />
+          <input type="text" id="profile-company" name="company" placeholder="Your company" />
         </div>
         <button type="submit" class="btn-primary-large">Save changes</button>
       </form>
@@ -416,24 +460,36 @@
       deleteProperty as deletePropertyFromDb,
       getProfile,
       saveProfile,
+      uploadAgencyLogo,
+      deleteAgencyLogo,
       listTrades,
       createTrade,
       seedTrades,
+      listProblems,
+      createProblem,
+      updateProblem,
+      deleteProblem,
+      seedProblems,
     } from "./js/store.js";
+    import {
+      buildRoomOptionsHtml,
+      buildTradeOptionsHtml,
+      tradeLabelFor,
+    } from "./js/constants.js";
 
-    // Nothing can load until auth has resolved, because every store.js call
-    // builds its path from the signed-in user's uid.
+    // nothing loads until auth resolves - every store.js call needs the uid
     requireAuth().then(async (user) => {
       document.getElementById("user-email").textContent = user.email;
+      document.getElementById("user-email-mobile").textContent = user.email;
       try {
-        await Promise.all([loadProperties(), loadProfile(user), renderTrades()]);
+        await Promise.all([loadProperties(), loadProfile(user), renderTrades(), renderProblems()]);
       } catch (err) {
         console.error(err);
         alert("Could not load your data: " + err.message);
       }
     });
 
-    const signoutBtn = document.getElementById("signout-btn");
+    const signoutBtns = document.querySelectorAll("[data-signout]");
     const navItems = document.querySelectorAll(".nav-item, .mobile-tab");
     const views = document.querySelectorAll(".view");
     const title = document.getElementById("view-title");
@@ -453,12 +509,37 @@
     const profileRoleText = document.querySelector(".profile-role");
     const profileCompanyText = document.querySelector(".profile-company");
     const profileAvatar = document.querySelector(".profile-avatar");
+    const mobileAvatar = document.getElementById("mobile-avatar");
+    const brandingLogo = document.getElementById("branding-logo");
+    const brandingLogoImg = document.getElementById("branding-logo-img");
+    const brandingLogoFallback = document.getElementById("branding-logo-fallback");
+    const logoInput = document.getElementById("logo-input");
+    const logoUploadBtn = document.getElementById("logo-upload-btn");
+    const logoRemoveBtn = document.getElementById("logo-remove-btn");
     const tradesGrid = document.getElementById("trades-grid");
     const tradesAddContactBtn = document.getElementById("trades-add-contact-btn");
     const tradesContactModal = document.getElementById("trades-contact-modal");
     const tradesModalCloseBtn = document.getElementById("trades-modal-close-btn");
     const tradesContactForm = document.getElementById("trades-contact-form");
     const tradesModalError = document.getElementById("trade-modal-error");
+    const tradeSelect = document.getElementById("trade-select");
+    const problemsGrid = document.getElementById("problems-grid");
+    const problemsAddBtn = document.getElementById("problems-add-btn");
+    const problemModal = document.getElementById("problem-modal");
+    const problemModalCloseBtn = document.getElementById("problem-modal-close-btn");
+    const problemModalTitle = document.getElementById("problem-modal-title");
+    const problemForm = document.getElementById("problem-form");
+    const problemModalError = document.getElementById("problem-modal-error");
+    const problemRoomSelect = document.getElementById("problem-room");
+    const problemTitleInput = document.getElementById("problem-title");
+    const problemFixInput = document.getElementById("problem-fix");
+    const problemTradeSelect = document.getElementById("problem-trade");
+    const problemDeleteBtn = document.getElementById("problem-delete-btn");
+
+    // null while adding, a database key while editing
+    let editingProblemId = null;
+
+    tradeSelect.innerHTML = buildTradeOptionsHtml();
 
     const initialTrades = [
       { id: "spark-and-sons-electrical", trade: "electrician", label: "Electrician", company: "Spark & Sons Electrical", person: "Dave Tui", phone: "021445980", email: "dave@sparkandsons.co.nz", rating: 4.9, jobs: 38 },
@@ -469,6 +550,188 @@
       { id: "greenthumb-gardens", trade: "gardener", label: "Gardener", company: "GreenThumb Gardens", person: "Tom Webb", phone: "021333444", email: "tom@greenthumb.co.nz", rating: 4.6, jobs: 27 },
       { id: "styled-to-sell", trade: "home-stager", label: "Home Stager", company: "Styled to Sell", person: "Priya Naidu", phone: "022115566", email: "priya@styledtosell.co.nz", rating: 4.9, jobs: 33 },
     ];
+
+    // the default library, grouped by room as [title, fix, tradeKey]
+    const problemSeed = {
+      Kitchen: [
+        ["Damaged cupboard", "Repair or replace the cupboard door and hinges.", "handyman"],
+        ["Broken drawer", "Refit the drawer runners or replace the drawer front.", "handyman"],
+        ["Cracked bench", "Fill and reseal the benchtop, or replace the damaged section.", "handyman"],
+        ["Leaking tap", "Replace the washer and tighten the fittings.", "handyman"],
+      ],
+      Bathroom: [
+        ["Mould", "Treat the affected area and improve ventilation.", "cleaner"],
+        ["Broken tiles", "Replace the cracked tiles and regrout.", "handyman"],
+        ["Water damage", "Trace the source, dry the area, and repair the lining.", "handyman"],
+        ["Blocked drain", "Clear the drain and check the trap for build-up.", "handyman"],
+      ],
+      "Living Room": [
+        ["Sun-faded carpet", "Rearrange furnishings or lay a rug over the faded area.", "home-stager"],
+        ["Loose skirting", "Refix and repaint the skirting board.", "handyman"],
+        ["Cracked window", "Replace the glass pane and reseal the frame.", "handyman"],
+        ["Damaged paint", "Prep the wall and repaint the affected surface.", "painter"],
+      ],
+      "Bedroom 1": [
+        ["Wardrobe door issue", "Realign the wardrobe door and adjust the track.", "handyman"],
+        ["Loose light fitting", "Resecure and test the light fitting.", "electrician"],
+        ["Uneven flooring", "Level the subfloor and refit the floor covering.", "handyman"],
+        ["Window seal damage", "Replace the perished seal and check for draughts.", "handyman"],
+      ],
+      "Bedroom 2": [
+        ["Wardrobe door issue", "Realign the wardrobe door and adjust the track.", "handyman"],
+        ["Loose light fitting", "Resecure and test the light fitting.", "electrician"],
+        ["Uneven flooring", "Level the subfloor and refit the floor covering.", "handyman"],
+        ["Window seal damage", "Replace the perished seal and check for draughts.", "handyman"],
+      ],
+      Garage: [
+        ["Door track issue", "Realign and lubricate the garage door track.", "handyman"],
+        ["Lighting fault", "Test the circuit and replace the faulty fitting.", "electrician"],
+        ["Floor staining", "Degrease and pressure-wash the concrete floor.", "exterior-cleaning"],
+        ["Storage damage", "Repair or remove the damaged shelving.", "handyman"],
+      ],
+      Exterior: [
+        ["Broken gutter", "Refit or replace the guttering and clear the downpipe.", "handyman"],
+        ["Damaged cladding", "Replace the damaged boards and repaint.", "handyman"],
+        ["Overgrown garden", "Trim back the growth and tidy the garden beds.", "gardener"],
+        ["Peeling paint", "Prep and repaint the exterior wall surface.", "painter"],
+        ["Cracked driveway", "Resurface the driveway and apply sealant.", "exterior-cleaning"],
+      ],
+      Other: [
+        ["General wear", "Touch up the worn areas before listing.", "handyman"],
+        ["Poor finish", "Sand back and refinish the surface.", "painter"],
+        ["Minor damage", "Patch and make good the damaged area.", "handyman"],
+        ["Loose fittings", "Tighten or replace the loose fittings.", "handyman"],
+      ],
+    };
+
+    function slugify(value) {
+      return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+
+    // slug ids so seeding twice overwrites instead of duplicating
+    const initialProblems = Object.entries(problemSeed).flatMap(([room, entries]) =>
+      entries.map(([problemTitle, fix, tradeKey]) => ({
+        id: `${slugify(room)}-${slugify(problemTitle)}`,
+        room,
+        title: problemTitle,
+        fix,
+        tradeKey,
+        tradeLabel: tradeLabelFor(tradeKey),
+      })),
+    );
+
+    function openProblemModal(problem = null) {
+      editingProblemId = problem?.id || null;
+      problemModalError.textContent = "";
+      problemModalTitle.textContent = problem ? "Edit problem" : "Add problem";
+      problemRoomSelect.innerHTML = buildRoomOptionsHtml(problem?.room || "");
+      problemTradeSelect.innerHTML = buildTradeOptionsHtml(problem?.tradeKey || "");
+      problemTitleInput.value = problem?.title || "";
+      problemFixInput.value = problem?.fix || "";
+      problemDeleteBtn.style.display = problem ? "block" : "none";
+      openModal(problemModal);
+    }
+
+    function closeProblemModal() {
+      closeModal(problemModal);
+      editingProblemId = null;
+      problemModalError.textContent = "";
+      problemForm.reset();
+    }
+
+    async function renderProblems() {
+      let problems = await listProblems();
+      if (problems.length === 0) {
+        // First time this account has opened the problems tab.
+        await seedProblems(initialProblems);
+        problems = await listProblems();
+      }
+
+      // grouped by room, sorted by title within each room
+      const grouped = {};
+      problems.forEach((problem) => {
+        const room = problem.room || "Other";
+        grouped[room] = grouped[room] || [];
+        grouped[room].push(problem);
+      });
+
+      problemsGrid.innerHTML = "";
+      let cardIndex = 0;
+
+      Object.keys(grouped)
+        .sort()
+        .forEach((room) => {
+          grouped[room]
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .forEach((problem) => {
+              const card = document.createElement("article");
+              card.className = "trade-card problem-card fade-up";
+              card.style.animationDelay = `${cardIndex * 30}ms`;
+              cardIndex += 1;
+              card.innerHTML = `
+                <div class="trade-card-top">
+                  <span class="trade-pill">${problem.room}</span>
+                  <span class="trade-pill problem-trade-pill">${problem.tradeLabel || tradeLabelFor(problem.tradeKey)}</span>
+                </div>
+                <h4>${problem.title}</h4>
+                <p class="problem-fix">${problem.fix || "No fix recorded yet."}</p>
+                <div class="trade-actions">
+                  <button class="trade-btn problem-edit-btn" type="button">
+                    <span>Edit</span>
+                  </button>
+                </div>
+              `;
+              card.querySelector(".problem-edit-btn").addEventListener("click", () => {
+                openProblemModal(problem);
+              });
+              problemsGrid.appendChild(card);
+            });
+        });
+    }
+
+    async function handleProblemSubmit(event) {
+      event.preventDefault();
+      problemModalError.textContent = "";
+
+      const room = problemRoomSelect.value;
+      const problemTitle = problemTitleInput.value.trim();
+      const fix = problemFixInput.value.trim();
+      const tradeKey = problemTradeSelect.value;
+
+      if (!room || !problemTitle || !fix || !tradeKey) {
+        problemModalError.textContent = "Please fill in every field.";
+        return;
+      }
+
+      const record = { room, title: problemTitle, fix, tradeKey, tradeLabel: tradeLabelFor(tradeKey) };
+
+      try {
+        if (editingProblemId) {
+          await updateProblem(editingProblemId, record);
+        } else {
+          await createProblem(record);
+        }
+        await renderProblems();
+        closeProblemModal();
+      } catch (err) {
+        console.error(err);
+        problemModalError.textContent = "Could not save this problem: " + err.message;
+      }
+    }
+
+    async function handleProblemDelete() {
+      if (!editingProblemId) return;
+      if (!confirm("Delete this problem from your library?")) return;
+
+      try {
+        await deleteProblem(editingProblemId);
+        await renderProblems();
+        closeProblemModal();
+      } catch (err) {
+        console.error(err);
+        problemModalError.textContent = "Could not delete this problem: " + err.message;
+      }
+    }
 
     function getInitials(name) {
       return name
@@ -498,7 +761,7 @@
     async function renderTrades() {
       let contacts = await listTrades();
       if (contacts.length === 0) {
-        // First time this account has opened the trades tab.
+        // first time this account has opened the trades tab
         await seedTrades(initialTrades);
         contacts = await listTrades();
       }
@@ -589,15 +852,17 @@
       }
     }
 
-    const switchView = (button) => {
-      const targetView = button.getAttribute("data-view");
+    const switchView = (target) => {
+      const targetView = typeof target === "string" ? target : target.getAttribute("data-view");
 
       views.forEach((view) => {
         view.classList.toggle("active", view.id === `${targetView}-view`);
       });
 
-      navItems.forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
+      // keep the sidebar nav and the mobile tab bar in step
+      navItems.forEach((item) => {
+        item.classList.toggle("active", item.getAttribute("data-view") === targetView);
+      });
 
       const labels = {
         appraisals: "Appraisals",
@@ -612,11 +877,17 @@
       button.addEventListener("click", () => switchView(button));
     });
 
+    if (mobileAvatar) {
+      mobileAvatar.addEventListener("click", () => switchView("profile"));
+    }
+
+    // fallback for old accounts created before signup wrote the profile itself
+    // everything blank - never show a name or employer the user did not give us
     function getProfileDefaults(email, displayName) {
       return {
-        fullname: displayName || "Jordan Smith",
-        role: "Senior Appraiser",
-        company: "HomeList Pro • Auckland",
+        fullname: displayName || "",
+        role: "",
+        company: "",
         email: email || "",
         phone: "",
       };
@@ -631,6 +902,107 @@
         .join("");
     }
 
+    // so Remove knows which file to delete
+    let currentLogoPath = null;
+    // kept separate from the card text - initials taken from "Add your company" read "AY"
+    let currentCompany = "";
+
+    // no point uploading the 3000px original, it only ever draws in a corner of the cover
+    const MAX_LOGO_WIDTH = 400;
+
+    function resizeLogo(file) {
+      return new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, MAX_LOGO_WIDTH / img.naturalWidth);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.naturalWidth * scale);
+          canvas.height = Math.round(img.naturalHeight * scale);
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(objectUrl);
+          canvas.toBlob(
+            (blob) => (blob ? resolve(blob) : reject(new Error("Could not read that image."))),
+            "image/png"
+          );
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Could not read that image."));
+        };
+        img.src = objectUrl;
+      });
+    }
+
+    // no logo falls back to the agency initials
+    function renderLogo(profile) {
+      currentLogoPath = profile.logoPath || null;
+      if (profile.logoUrl) {
+        brandingLogoImg.src = profile.logoUrl;
+        brandingLogoImg.hidden = false;
+        brandingLogoFallback.hidden = true;
+        brandingLogo.classList.add("has-logo");
+        logoRemoveBtn.hidden = false;
+        return;
+      }
+      brandingLogoImg.removeAttribute("src");
+      brandingLogoImg.hidden = true;
+      brandingLogoFallback.hidden = false;
+      brandingLogoFallback.textContent = profileInitials(profile.company || "") || "HP";
+      brandingLogo.classList.remove("has-logo");
+      logoRemoveBtn.hidden = true;
+    }
+
+    async function uploadLogo(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      // the card promises 2MB, so check before spending the upload
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Logo must be under 2MB.");
+        logoInput.value = "";
+        return;
+      }
+
+      logoUploadBtn.disabled = true;
+      logoUploadBtn.textContent = "Uploading...";
+      try {
+        const blob = await resizeLogo(file);
+        const logo = await uploadAgencyLogo(blob);
+        // update() merges, so the name/role/company/email/phone are left alone
+        await saveProfile({ logoUrl: logo.url, logoPath: logo.path });
+        renderLogo({ logoUrl: logo.url, logoPath: logo.path, company: currentCompany });
+      } catch (err) {
+        console.error(err);
+        alert("Could not upload your logo: " + err.message);
+      } finally {
+        logoUploadBtn.disabled = false;
+        logoUploadBtn.textContent = "Upload";
+        // without this, picking the same file again would not fire "change"
+        logoInput.value = "";
+      }
+    }
+
+    async function removeLogo() {
+      if (!confirm("Remove your agency logo?")) return;
+
+      logoRemoveBtn.disabled = true;
+      try {
+        if (currentLogoPath) {
+          // already gone from the bucket - still clear the fields pointing at it
+          await deleteAgencyLogo(currentLogoPath).catch((err) => console.error(err));
+        }
+        // null tells the database to delete these children
+        await saveProfile({ logoUrl: null, logoPath: null });
+        renderLogo({ company: currentCompany });
+      } catch (err) {
+        console.error(err);
+        alert("Could not remove your logo: " + err.message);
+      } finally {
+        logoRemoveBtn.disabled = false;
+      }
+    }
+
     async function loadProfile(user) {
       // `user` can be either an email string or a Firebase user object
       const isUserObj = user && typeof user === "object" && user.email;
@@ -639,20 +1011,32 @@
       const stored = await getProfile();
       const profile = stored || getProfileDefaults(email, displayName);
       profile.email = email || profile.email;
-      profile.fullname = profile.fullname || displayName || "Jordan Smith";
+      profile.fullname = profile.fullname || displayName || "";
       profile.phone = profile.phone || profile.phone === "" ? profile.phone : "";
-      // update UI
-      profileNameHeading.textContent = profile.fullname;
-      profileRoleText.textContent = profile.role;
-      profileCompanyText.textContent = profile.company;
-      profileAvatar.textContent = profileInitials(profile.fullname);
+      // update UI, prompting for anything not filled in yet
+      profileNameHeading.textContent = profile.fullname || "Add your name";
+      profileRoleText.textContent = profile.role || "Add your role";
+      profileCompanyText.textContent = profile.company || "Add your company";
+      // profileInitials returns "" for an empty name, so fall back to the email
+      const initials =
+        profileInitials(profile.fullname) || (profile.email ? profile.email[0].toUpperCase() : "?");
+      profileAvatar.textContent = initials;
+      if (mobileAvatar) {
+        mobileAvatar.textContent = initials;
+        mobileAvatar.title = profile.fullname || profile.email || "";
+      }
       // Account block
       const accName = document.getElementById("account-fullname");
       const accEmail = document.getElementById("account-email");
       const accPhone = document.getElementById("account-phone");
-      if (accName) accName.textContent = profile.fullname;
+      if (accName) accName.textContent = profile.fullname || "—";
       if (accEmail) accEmail.textContent = profile.email || email || "";
       if (accPhone) accPhone.textContent = profile.phone || "—";
+      const accAgency = document.getElementById("account-agency");
+      if (accAgency) accAgency.textContent = profile.company || "—";
+      // Report branding card
+      currentCompany = profile.company || "";
+      renderLogo(profile);
       if (!stored) {
         await saveProfile(profile);
       }
@@ -676,9 +1060,10 @@
       const stored = await getProfile();
       const defaults = getProfileDefaults(document.getElementById("user-email").textContent, stored?.fullname);
       const profile = stored || defaults;
-      profileFullnameInput.value = profile.fullname;
-      profileRoleInput.value = profile.role;
-      profileCompanyInput.value = profile.company;
+      // older records may be missing fields - undefined would print "undefined" in the box
+      profileFullnameInput.value = profile.fullname || "";
+      profileRoleInput.value = profile.role || "";
+      profileCompanyInput.value = profile.company || "";
       const profilePhoneInput = document.getElementById("profile-phone");
       const profileEmailInput = document.getElementById("profile-email");
       if (profilePhoneInput) profilePhoneInput.value = profile.phone || "";
@@ -691,17 +1076,16 @@
       const profilePhoneInput = document.getElementById("profile-phone");
       const profileEmailInput = document.getElementById("profile-email");
       const profile = {
-        fullname: profileFullnameInput.value.trim() || "Jordan Smith",
-        role: profileRoleInput.value.trim() || "Senior Appraiser",
-        company: profileCompanyInput.value.trim() || "HomeList Pro • Auckland",
+        fullname: profileFullnameInput.value.trim(),
+        role: profileRoleInput.value.trim(),
+        company: profileCompanyInput.value.trim(),
         email: (profileEmailInput && profileEmailInput.value) || document.getElementById("user-email").textContent,
         phone: (profilePhoneInput && profilePhoneInput.value.trim()) || "",
       };
 
       try {
         await saveProfile(profile);
-        // Keep the name on the Firebase account itself in step with the profile,
-        // otherwise it stays whatever was typed at signup.
+        // keep the Firebase account name in step or it stays whatever was typed at signup
         if (auth.currentUser && profile.fullname !== auth.currentUser.displayName) {
           await updateProfile(auth.currentUser, { displayName: profile.fullname });
         }
@@ -808,25 +1192,40 @@
     tradesAddContactBtn.addEventListener("click", openTradeModal);
     tradesModalCloseBtn.addEventListener("click", closeTradeModal);
     tradesContactForm.addEventListener("submit", handleTradeSubmit);
+    problemsAddBtn.addEventListener("click", () => openProblemModal());
+    problemModalCloseBtn.addEventListener("click", closeProblemModal);
+    problemForm.addEventListener("submit", handleProblemSubmit);
+    problemDeleteBtn.addEventListener("click", handleProblemDelete);
     if (profileEditBtn) {
       profileEditBtn.addEventListener("click", openProfileEdit);
     }
     profileModalCloseBtn.addEventListener("click", () => closeModal(profileEditModal));
     profileEditForm.addEventListener("submit", saveProfileChanges);
+    // The file input is hidden, so the visible button stands in for it.
+    logoUploadBtn.addEventListener("click", () => logoInput.click());
+    logoInput.addEventListener("change", uploadLogo);
+    logoRemoveBtn.addEventListener("click", removeLogo);
 
     // Close modal on overlay click
     document.querySelectorAll(".modal-overlay").forEach((overlay) => {
       overlay.addEventListener("click", () => {
         const parentModal = overlay.closest(".modal");
+        // The problem modal has edit state to clear, so it gets its own closer.
+        if (parentModal === problemModal) {
+          closeProblemModal();
+          return;
+        }
         closeModal(parentModal);
       });
     });
 
     document.querySelector(".mobile-action").addEventListener("click", () => openModal(newAppraisalModal));
 
-    signoutBtn.addEventListener("click", async () => {
-      await signOutUser();
-      window.location.replace("login.html");
+    signoutBtns.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await signOutUser();
+        window.location.replace("login.html");
+      });
     });
   </script>
 </body>

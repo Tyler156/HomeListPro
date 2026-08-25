@@ -138,6 +138,23 @@
             <div id="suggestionList" class="suggestion-list"></div>
           </div>
 
+          <!-- hidden when replacing a photo on an existing issue -->
+          <div id="saveToLibraryRow" class="save-to-library">
+            <div class="save-to-library-copy">
+              <strong>Save to problem library</strong>
+              <p>Keep this problem for re-use on future appraisals.</p>
+            </div>
+            <label class="toggle" aria-label="Save to problem library">
+              <input id="saveToLibraryToggle" type="checkbox" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div id="saveToLibraryTrade" class="form-group save-to-library-trade" style="display:none">
+            <label for="captureTradeSelect">Trade who fixes this</label>
+            <select id="captureTradeSelect" class="select-input"></select>
+          </div>
+
           <div class="capture-actions-inline">
             <button id="saveIssueBtn" class="btn-primary-large">Save issue</button>
             <button id="cancelCaptureBtn" class="btn-secondary" type="button">Cancel</button>
@@ -202,32 +219,13 @@
       updateProperty,
       deleteProperty,
       uploadIssuePhoto,
+      listProblems,
+      createProblem,
     } from "./js/store.js";
+    import { ROOMS, buildTradeOptionsHtml, tradeLabelFor } from "./js/constants.js";
 
     const params = new URLSearchParams(window.location.search);
-    // A database key, so this stays a string.
     const appraisalId = params.get("id");
-    const ROOMS = [
-      "Kitchen",
-      "Bathroom",
-      "Living Room",
-      "Bedroom 1",
-      "Bedroom 2",
-      "Garage",
-      "Exterior",
-      "Other",
-    ];
-
-    const PROBLEM_LIBRARY = {
-      Kitchen: ["Damaged cupboard", "Broken drawer", "Cracked bench", "Leaking tap"],
-      Bathroom: ["Mould", "Broken tiles", "Water damage", "Blocked drain"],
-      "Living Room": ["Sun-faded carpet", "Loose skirting", "Cracked window", "Damaged paint"],
-      "Bedroom 1": ["Wardrobe door issue", "Loose light fitting", "Uneven flooring", "Window seal damage"],
-      "Bedroom 2": ["Wardrobe door issue", "Loose light fitting", "Uneven flooring", "Window seal damage"],
-      Garage: ["Door track issue", "Lighting fault", "Floor staining", "Storage damage"],
-      Exterior: ["Broken gutter", "Damaged cladding", "Overgrown garden", "Peeling paint"],
-      Other: ["General wear", "Poor finish", "Minor damage", "Loose fittings"],
-    };
 
     const captureBtn = document.getElementById("captureBtn");
     const previewReportBtn = document.getElementById("preview-report-btn");
@@ -263,11 +261,17 @@
     const replacePhotoBtn = document.getElementById("replacePhotoBtn");
     const deleteIssueBtn = document.getElementById("deleteIssueBtn");
     const takePhotoButton = document.getElementById("takePhotoBtn");
+    const saveToLibraryRow = document.getElementById("saveToLibraryRow");
+    const saveToLibraryToggle = document.getElementById("saveToLibraryToggle");
+    const saveToLibraryTrade = document.getElementById("saveToLibraryTrade");
+    const captureTradeSelect = document.getElementById("captureTradeSelect");
 
-    // The appraisal is fetched once in initReview and kept here, so the render
-    // functions below can stay synchronous. Every change updates this object
-    // and then writes the issues array back to the database.
+    captureTradeSelect.innerHTML = buildTradeOptionsHtml();
+
+    // fetched once in initReview so the render functions can stay synchronous
     let appraisal = null;
+    // same - kept in sync in place instead of refetching mid-capture
+    let problemLibrary = [];
     let selectedRoom = null;
     let currentIssuePhoto = null;
     let editingIssueId = null;
@@ -415,21 +419,75 @@
       captureDetails.style.display = "none";
       retakePhotoBtn.style.display = "none";
       loadSuggestions(room);
+      setSaveToLibraryVisible(true);
       openModal(captureModal);
       openCamera();
     }
 
+    function problemsForRoom(room) {
+      const forRoom = problemLibrary.filter((problem) => problem.room === room);
+      if (forRoom.length > 0) return forRoom;
+      // a room with no saved problems still gets the general ones
+      return problemLibrary.filter((problem) => problem.room === "Other");
+    }
+
     function loadSuggestions(room) {
-      const suggestions = PROBLEM_LIBRARY[room] || PROBLEM_LIBRARY.Other;
+      const suggestions = problemsForRoom(room);
+      // an empty library is a blank panel, not an error
       suggestionList.innerHTML = suggestions
-        .map((suggestion) => `<button type="button" class="suggestion-pill">${suggestion}</button>`)
+        .map(
+          (problem, index) =>
+            `<button type="button" class="suggestion-pill" data-index="${index}">${problem.title}</button>`,
+        )
         .join("");
       suggestionList.querySelectorAll(".suggestion-pill").forEach((button) => {
         button.addEventListener("click", () => {
-          captureIssueTitle.value = button.textContent;
-          captureDescription.value = `Inspect the ${button.textContent.toLowerCase()} in the ${room.toLowerCase()}.`;
+          const problem = suggestions[Number(button.dataset.index)];
+          if (!problem) return;
+          captureIssueTitle.value = problem.title;
+          // the stored fix is the useful text, the sentence is just a fallback
+          captureDescription.value =
+            problem.fix || `Inspect the ${problem.title.toLowerCase()} in the ${room.toLowerCase()}.`;
+          if (problem.tradeKey) captureTradeSelect.value = problem.tradeKey;
         });
       });
+    }
+
+    // the toggle only makes sense for a brand new issue
+    function setSaveToLibraryVisible(visible) {
+      saveToLibraryRow.style.display = visible ? "flex" : "none";
+      resetSaveToLibrary();
+    }
+
+    function resetSaveToLibrary() {
+      saveToLibraryToggle.checked = false;
+      saveToLibraryTrade.style.display = "none";
+      captureTradeSelect.value = "";
+    }
+
+    // saves the captured issue into the library - allowed to fail on its own
+    async function saveIssueToLibrary(room, title, description) {
+      const tradeKey = captureTradeSelect.value;
+      const cleanTitle = title.trim();
+      if (!cleanTitle || !tradeKey) return;
+
+      // already in the library for this room, so leave the stored fix alone
+      const exists = problemLibrary.some(
+        (problem) =>
+          problem.room === room && (problem.title || "").toLowerCase() === cleanTitle.toLowerCase(),
+      );
+      if (exists) return;
+
+      const record = {
+        room,
+        title: cleanTitle,
+        fix: description.trim(),
+        tradeKey,
+        tradeLabel: tradeLabelFor(tradeKey),
+      };
+      const id = await createProblem(record);
+      // cached so the pills show it without another round trip
+      problemLibrary.push({ id, ...record });
     }
 
     function openEditModal(issueId) {
@@ -466,10 +524,16 @@
         return;
       }
 
+      // checked first so the agent is not asked for a trade after the issue saved
+      if (saveToLibraryToggle.checked && !captureTradeSelect.value) {
+        alert("Please choose the trade who fixes this, or turn off saving to the problem library.");
+        return;
+      }
+
       const property = getCurrentAppraisal();
       if (!property) return;
 
-      // The upload takes a moment, so lock the button while it runs.
+      // the upload takes a moment, so lock the button
       saveIssueBtn.disabled = true;
       saveIssueBtn.textContent = "Saving...";
 
@@ -491,6 +555,20 @@
         });
 
         await persistIssues();
+
+        // own catch on purpose - the photo and issue have already committed, so a
+        // failure here must not tell the agent their issue did not save
+        if (saveToLibraryToggle.checked) {
+          const room = selectedRoom;
+          const title = captureIssueTitle.value;
+          const description = captureDescription.value;
+          try {
+            await saveIssueToLibrary(room, title, description);
+          } catch (libraryErr) {
+            console.error("Issue saved, but could not add it to the problem library", libraryErr);
+          }
+        }
+
         renderIssues();
         closeCaptureModalHandler();
       } catch (err) {
@@ -528,8 +606,7 @@
     async function deleteIssue(issueId) {
       const property = getCurrentAppraisal();
       if (!property) return;
-      // issues is missing rather than empty when an appraisal has none yet,
-      // because the database does not store empty lists.
+      // the database does not store empty lists, so issues is missing not empty
       const remaining = (property.issues || []).filter((item) => item.id !== issueId);
 
       try {
@@ -559,6 +636,7 @@
       photoPreview.style.display = "none";
       captureDetails.style.display = "none";
       retakePhotoBtn.style.display = "none";
+      setSaveToLibraryVisible(false);
       openModal(captureModal);
       closeModal(editIssueModal);
       openCamera();
@@ -568,6 +646,7 @@
       closeCamera();
       currentIssuePhoto = null;
       replacingPhotoForId = null;
+      resetSaveToLibrary();
       closeModal(captureModal);
     }
 
@@ -596,7 +675,16 @@
       }
 
       try {
-        appraisal = await getProperty(appraisalId);
+        // a library failure just leaves the pills empty instead of blocking the page
+        const [property, problems] = await Promise.all([
+          getProperty(appraisalId),
+          listProblems().catch((err) => {
+            console.error("Could not load the problem library", err);
+            return [];
+          }),
+        ]);
+        appraisal = property;
+        problemLibrary = problems;
       } catch (err) {
         console.error(err);
         alert("Could not load this appraisal: " + err.message);
@@ -622,6 +710,9 @@
       closeCaptureModal.addEventListener("click", closeCaptureModalHandler);
       closeEditModal.addEventListener("click", () => closeModal(editIssueModal));
       cancelCaptureBtn.addEventListener("click", closeCaptureModalHandler);
+      saveToLibraryToggle.addEventListener("change", () => {
+        saveToLibraryTrade.style.display = saveToLibraryToggle.checked ? "block" : "none";
+      });
       saveIssueBtn.addEventListener("click", () => {
         if (replacingPhotoForId) {
           replaceIssuePhoto();
@@ -676,7 +767,7 @@
     }
 
     window.addEventListener("photocaptured", (event) => {
-      // The blob is what gets uploaded; the object URL is just for the preview.
+      // the blob gets uploaded, the object URL is just for the preview
       currentIssuePhoto = event.detail.blob;
       photoPreview.src = event.detail.previewUrl;
       photoPreview.style.display = "block";
