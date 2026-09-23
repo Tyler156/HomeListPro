@@ -63,6 +63,39 @@ function inlineImages(sourceElement, targetElement) {
   });
 }
 
+// Need to turn the layout into tables for word doc
+function layoutForWord(clone) {
+  const details = clone.querySelector(".report-details");
+  if (details) {
+    const cells = [...details.children].map((d) =>
+      `<td width="50%" style="border:1px solid #d1d5db;background:#f8fafc;padding:10px;vertical-align:top">
+        <span style="color:#475569;font-size:9pt;text-transform:uppercase">${d.querySelector("span").textContent}</span><br>
+        <strong>${d.querySelector("strong").innerHTML}</strong></td>`);
+    let rows = "";
+    for (let i = 0; i < cells.length; i += 2) rows += `<tr>${cells[i]}${cells[i + 1] || "<td></td>"}</tr>`;
+    details.outerHTML = `<table width="100%" cellspacing="8" style="margin:16px 0">${rows}</table>`;
+  }
+
+
+
+  clone.querySelectorAll(".report-issue-card").forEach((card) => {
+  const img = card.querySelector(".report-issue-photo img");
+  if (img) {
+    // Word CSS max-width fix
+    const ratio = img.naturalWidth ? img.naturalHeight / img.naturalWidth : 0.75;
+    img.removeAttribute("style");
+    img.setAttribute("width", "200");
+    img.setAttribute("height", String(Math.round(200 * ratio)));
+    img.setAttribute("style", "width:200px;height:" + Math.round(200 * ratio) + "px");
+  }
+  const photo = card.querySelector(".report-issue-photo").innerHTML;
+  const copy = card.querySelector(".report-issue-copy").innerHTML;
+  card.outerHTML = `<table width="100%" style="border:1px solid #e2e8f0;background:#f8fafc"><tr>
+    <td width="210" style="width:210px;padding:10px;vertical-align:top">${photo}</td>
+    <td style="padding:10px;vertical-align:top">${copy}</td></tr></table>`;
+});
+}
+
 export async function exportReportWord(reportElement, filename) {
   if (!reportElement) return;
 
@@ -72,6 +105,8 @@ export async function exportReportWord(reportElement, filename) {
   // work on a copy so the report on screen keeps its original srcs
   const clone = reportElement.cloneNode(true);
   inlineImages(reportElement, clone);
+ //bug fix - layout as a table for word
+  layoutForWord(clone);
 
   const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -79,7 +114,7 @@ export async function exportReportWord(reportElement, filename) {
         <meta charset="utf-8" />
         <title>HomeList Pro Report</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 1in; color: #111111; }
+          body { font-family: 'Segoe UI', Calibri, sans-serif; margin: 0; color: #111111; }
           h1, h2, h3, h4 { color: #0f172a; }
           img { max-width: 100%; height: auto; border-radius: 10px; }
           .report-cover { margin-bottom: 24px; }
@@ -87,13 +122,11 @@ export async function exportReportWord(reportElement, filename) {
           .report-cover-logo { max-height: 64px; max-width: 220px; border-radius: 0; margin-bottom: 12px; }
           .report-cover-title { font-size: 32px; margin: 0; }
           .report-cover-subtitle { margin: 8px 0 0; color: #4f7fbf; }
-          .report-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
           .report-details div { margin-bottom: 12px; }
           .report-details span { display: block; color: #475569; font-size: 12px; margin-bottom: 4px; }
           .report-details strong { font-size: 14px; }
           .report-room-heading { font-size: 20px; margin-top: 28px; }
           .report-issue-number { margin: 8px 0; font-weight: 700; }
-          .report-issue-card { display: flex; gap: 14px; margin-top: 12px; }
           .report-issue-photo { width: 160px; }
           .report-issue-body p { margin: 6px 0; }
         </style>
