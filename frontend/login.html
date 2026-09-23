@@ -47,10 +47,19 @@
     const passwordEl = document.getElementById("password");
     const messageEl = document.getElementById("message");
 
-    // Show an error if the sign in fails.
+    // Turn Firebase error code into a sentence the user understansds
     function showError(err) {
       messageEl.className = "message error";
-      messageEl.textContent = `${err.code || "error"}: ${err.message}`;
+      const code = err.code || "";
+      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found" || code === "auth/invalid-email") {
+        messageEl.textContent = "Wrong email or password.";
+      } else if (code === "auth/too-many-requests") {
+        messageEl.textContent = "Too many attempts. Wait a minute and try again.";
+      } else if (code === "auth/network-request-failed") {
+        messageEl.textContent = "No internet connection. Check your signal and try again.";
+      } else {
+        messageEl.textContent = "Something went wrong signing in. Please try again.";
+      }
     }
 
     // Clear the old message.

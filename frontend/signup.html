@@ -49,9 +49,21 @@
     const confirmPasswordEl = document.getElementById("confirm-password");
     const messageEl = document.getElementById("message");
 
+    // display the user friendly error message
     function showError(err) {
       messageEl.className = "message error";
-      messageEl.textContent = `${err.code || "error"}: ${err.message}`;
+      const code = err.code || "";
+      if (code === "auth/email-already-in-use") {
+        messageEl.textContent = "That email is already registered. Try signing in instead.";
+      } else if (code === "auth/invalid-email") {
+        messageEl.textContent = "That email address doesn't look right.";
+      } else if (code === "auth/weak-password") {
+        messageEl.textContent = "Password must be at least 6 characters.";
+      } else if (code === "auth/network-request-failed") {
+        messageEl.textContent = "No internet connection. Check your signal and try again.";
+      } else {
+        messageEl.textContent = "Something went wrong creating your account. Please try again.";
+      }
     }
 
     function clearMessage() {
