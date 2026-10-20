@@ -13,7 +13,7 @@ let signUpInProgress = false;
 export function signIn(email, password) {
   return signInWithEmailAndPassword(auth, email, password);
 }
-
+ // My complex technique async code 
 export async function signUp(email, password, fullName) {
   signUpInProgress = true;
   try {

@@ -122,7 +122,7 @@ function buildReport(property, profile) {
     </div>
   `;
 }
-
+// My complex technique using async code. 
 async function init() {
   if (!appraisalId) {
     window.location.href = "dashboard.html";

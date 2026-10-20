@@ -518,6 +518,9 @@
       statusBadge.className = `status-badge ${property.status === "draft" ? "draft" : property.status === "sent" ? "sent" : ""}`;
     }
 
+    // COMPLEX TECHNIQUE 2: async code 
+// saves an issue. it has to wait for the photo to upload before it can save the issue,
+// because the issue needs the photo's link
     async function addNewIssue() {
       if (!currentIssuePhoto) {
         alert("Please take a photo before saving the issue.");
@@ -536,6 +539,8 @@
       // the upload takes a moment, so lock the button
       saveIssueBtn.disabled = true;
       saveIssueBtn.textContent = "Saving...";
+
+// await waits for the photo to finish uploading before moving on
 
       try {
         const issueId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;

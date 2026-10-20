@@ -37,7 +37,7 @@ function toListNewestFirst(snapshot) {
     rows.push({ id: childSnapshot.key, ...childSnapshot.val() });
   });
   return rows.reverse();
-}
+} 
 
 // ---------- Properties ----------
 
